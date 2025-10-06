@@ -417,6 +417,7 @@ module vmr1RunContainer 'modules/vm-extension.bicep' = {
   scope: rg
   params: {
     vmName: 'vm-r1'
+    location: location1
     containerImage: 'madedroo/azure-region-viewer:latest'
     containerPort: containerPort
     exposedPort: backendPort
@@ -766,6 +767,7 @@ module vmr2RunContainer 'modules/vm-extension.bicep' = {
   scope: rg
   params: {
     vmName: 'vm-r2'
+    location: location2
     containerImage: 'madedroo/azure-region-viewer:latest'
     containerPort: containerPort
     exposedPort: backendPort

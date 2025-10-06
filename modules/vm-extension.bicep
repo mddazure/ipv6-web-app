@@ -2,6 +2,8 @@ targetScope = 'resourceGroup'
 
 @description('Name of the VM to attach the extension to')
 param vmName string
+@description('Location for all resources.')
+param location string 
 @description('Container image to run')
 param containerImage string
 @description('Container port')
@@ -10,7 +12,7 @@ param exposedPort int = 80
 
 resource vmExt 'Microsoft.Compute/virtualMachines/extensions@2023-03-01' = {
   name: '${vmName}/runDocker'
-  location: resourceGroup().location
+  location: location
   properties: {
     publisher: 'Microsoft.Azure.Extensions'
     type: 'CustomScript'
