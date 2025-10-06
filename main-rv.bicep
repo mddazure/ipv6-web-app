@@ -1,4 +1,4 @@
-param rgName string = 'ipv6-web-app-rg-2'
+param rgName string = 'ipv6-web-app-rg'
 param subscriptionId string = subscription().subscriptionId
 param location1 string = 'swedencentral'
 param location2 string = 'eastus2'
