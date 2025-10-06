@@ -418,7 +418,7 @@ module vmr1RunContainer 'modules/vm-extension.bicep' = {
   params: {
     vmName: 'vm-r1'
     location: location1
-    containerImage: 'madedroo/azure-region-viewer:latest'
+    containerImage: 'ipv6demoappacr.azurecr.io/ipv6demoapp:v3'
     containerPort: containerPort
     exposedPort: backendPort
   }
