@@ -4,7 +4,16 @@ The unallocated IPv4 address space pool has been exhausted for some time now, me
 
 Despite the depletion of free IPv4 address space, adoption of IPv6 - with its almost infinitely larger address space the definitive solution to the address space depletion problem - has been slow. [Uptake of IPv6 in the European Union](https://op.europa.eu/en/publication-detail/-/publication/4fcbb7eb-b05e-11ef-acb1-01aa75ed71a1) in Q3 of 2024 stood at appr. 36% for clients (end-users) and 23% for (web) servers over all member states - although there significant variations between states. Globally, [Google](https://www.google.com/intl/en/ipv6/statistics.html#tab=ipv6-adoption) reports 45% of clients connecting to its services over IPv6, with France leading at 80%. However, ultimately IPv6 will be the dominant network protocol on the internet, as the IPv4 life-support mechanisms used by network operators, hosting providers and ISPs will eventually reach the limits of their scalability.
 
+IPv6 client access measured by Google:
+
+![image](/images/google-ipv6-client-access.png)
+
 Meanwhile, countries around the world are mandating IPv6 reachability for public web services. Examples are [the United States](https://www.whitehouse.gov/wp-content/uploads/2020/11/M-21-07.pdf), European Union member states among which [the Netherlands](https://www.forumstandaardisatie.nl/ipv6), [Norway](https://lovdata.no/dokument/SF/forskrift/2013-04-05-959#shareModal), [India](https://dot.gov.in/ipv6-transition-across-stakeholders), Japan. Entities needing to comply with these mandates are looking at Azure's networking capabilities for solutions. Lukcily, Azure supports IPv6 for both private, internal, and external, public, networking and capabilities have developed and expanded over time. This article discusses strategies to build and deploy natively IPv6-enabled public, internet-facing applications that are reachable from IPv6(-only) clients.
+
+IPv6 adoption per country measured by Google:
+
+![image](/images/google-ipv6-country-adoption.png)
+
 
 ## Azure Networking IPv6 capabilities 
 Azure's private networking capabilities center on Virtual Networks (VNETs) and the components that are deployed within. Azure VNETs are [IPv4/IPv6](https://learn.microsoft.com/en-us/azure/virtual-network/ip-services/ipv6-overview) dual stack capable: a VNET **must** always have IPv4 address space allocated, and **can** have also IPv6 address space. Virtual machines in a dual stack VNET will have both an IPv4 and an IPv6 address from the VNET range, and can be behind IPv6 capable External- and Internal Load Balancers.  VNETs can be connected through VNET peering, which effectively turns the peered VNETs into a single routing domain. It is now possible to peer only the IPv6 address spaces of VNETs, so that the IPv4 space assigned to VNETs can overlap and communication across the peering is over IPv6. The same is true for connectivity to onpremise over ExpressRoute: the Private Peering can be enabled for IPv6 only, so that VNETs in Azure do not have to have unique IPv4 address space assigned, which may be in short supply in an enterprise.
