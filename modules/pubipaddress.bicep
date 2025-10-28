@@ -19,6 +19,9 @@ param skuName string = 'Standard'
 @allowed(['Static', 'Dynamic'])
 param allocationMethod string = 'Static'
 
+@description('Enable zone redundancy for the public IP address')
+param zoneRedundant bool = true
+
 resource publicIPAddress 'Microsoft.Network/publicIPAddresses@2023-11-01' = {
   name: name
   location: location
@@ -26,6 +29,7 @@ resource publicIPAddress 'Microsoft.Network/publicIPAddresses@2023-11-01' = {
     name: skuName
     tier: 'Regional'
   }
+  zones: zoneRedundant ? ['1', '2', '3'] : null
   properties: {
     publicIPAllocationMethod: allocationMethod
     publicIPAddressVersion: version
