@@ -57,6 +57,9 @@ param vnetr2spokeSubnet2Name string = 'Subnet2'
 param vnetr2spokeSubnet2IPv4Range string = '10.2.2.128/26'
 param vnetr2spokeSubnet2IPv6Range string = '2001:0db9:2:2::/64'
 
+// demo application container image
+param containerImage string = 'ipv6demoappacr.azurecr.io/ipv6demoapp:v3'
+
 //port backend vm's listen on
 param backendPort int = 80
 
@@ -130,9 +133,8 @@ module vnetr1spoke 'br/public:avm/res/network/virtual-network:0.7.0' = {
     
     subnets: [
       {
-       name: vnetr1spokeSubnet0Name
-       delegation: 'Microsoft.ContainerInstance/containerGroups'
-      addressPrefixes: [
+      name: vnetr1spokeSubnet0Name
+        addressPrefixes: [
           vnetr1spokeSubnet0IPv4Range
           //vnetr1spokeSubnet0IPv6Range
           ]
@@ -219,6 +221,9 @@ module azfwr1PublicIP 'br/public:avm/res/network/public-ip-address:0.7.0' = {
 
   }
 }*/
+
+
+/*
 module appgwr1PublicIPv6 'br/public:avm/res/network/public-ip-address:0.7.0' = {
   name: 'appgwr1PublicIP'
   scope: rg
@@ -228,8 +233,12 @@ module appgwr1PublicIPv6 'br/public:avm/res/network/public-ip-address:0.7.0' = {
     skuName: 'Standard'
     publicIPAllocationMethod: 'Static'
     publicIPAddressVersion: 'IPv6'
-  }
-}
+    dnsSettings: {
+      domainNameLabelScope: 'NoReuse'
+      domainNameLabel: 'ipv6webapp-${location1}'
+     }
+   }
+  }  
 module appgwr1PublicIPv4 'br/public:avm/res/network/public-ip-address:0.7.0' = {
   name: 'appgwr1PublicIPv4'
   scope: rg
@@ -239,8 +248,39 @@ module appgwr1PublicIPv4 'br/public:avm/res/network/public-ip-address:0.7.0' = {
     skuName: 'Standard'
     publicIPAllocationMethod: 'Static'
     publicIPAddressVersion: 'IPv4'
+    dnsSettings: {
+      domainNameLabelScope: 'NoReuse'
+      domainNameLabel: 'ipv4webapp-${location1}'
+     }
   }
 }
+*/
+module appgwr1PublicIPv6 'modules/pubipaddress.bicep' = {
+  name: 'appgwr1PublicIPv6'
+  scope: rg
+  params: {
+    name: 'appgwr1PublicIPv6'
+    location: location1
+    skuName: 'Standard'
+    allocationMethod: 'Static'
+    version: 'IPv6'
+    dnsNameLabel: 'ipv6webapp-${location1}'
+  }
+}
+
+module appgwr1PublicIPv4 'modules/pubipaddress.bicep' = {
+  name: 'appgwr1PublicIPv4'
+  scope: rg
+  params: {
+    name: 'appgwr1PublicIPv4'
+    location: location1
+    skuName: 'Standard'
+    allocationMethod: 'Static'
+    version: 'IPv4'
+    dnsNameLabel: 'ipv4webapp-${location1}'
+  }
+}
+
 module applicationGateway1 'br/public:avm/res/network/application-gateway:0.7.0' = {
   name: 'appgwr1Deployment'
   scope: rg
@@ -418,7 +458,7 @@ module vmr1RunContainer 'modules/vm-extension.bicep' = {
   params: {
     vmName: 'vm-r1'
     location: location1
-    containerImage: 'ipv6demoappacr.azurecr.io/ipv6demoapp:v3'
+    containerImage: containerImage
     containerPort: containerPort
     exposedPort: backendPort
   }
@@ -482,8 +522,7 @@ module vnetr2spoke 'br/public:avm/res/network/virtual-network:0.7.0' = {
     subnets: [
       {
        name: vnetr2spokeSubnet0Name
-       delegation: 'Microsoft.ContainerInstance/containerGroups'
-      addressPrefixes: [
+         addressPrefixes: [
           vnetr2spokeSubnet0IPv4Range
           //vnetr2spokeSubnet0IPv6Range
           ]
@@ -570,6 +609,7 @@ module azfwr2PublicIP 'br/public:avm/res/network/public-ip-address:0.7.0' = {
 
   }
 }*/
+/*
 module appgwr2PublicIPv6 'br/public:avm/res/network/public-ip-address:0.7.0' = {
   name: 'appgwr2PublicIP'
   scope: rg
@@ -579,9 +619,39 @@ module appgwr2PublicIPv6 'br/public:avm/res/network/public-ip-address:0.7.0' = {
     skuName: 'Standard'
     publicIPAllocationMethod: 'Static'
     publicIPAddressVersion: 'IPv6'
+    dnsSettings: {
+      domainNameLabelScope: 'NoReuse'
+      domainNameLabel: 'ipv6webapp-${location2}'
+    }
+  }
+}*/
+module appgwr2PublicIPv4 'modules/pubipaddress.bicep' = {
+  name: 'appgwr2PublicIPv4'
+  scope: rg
+  params: {
+    name: 'appgwr2PublicIPv4'
+    location: location2
+    skuName: 'Standard'
+    allocationMethod: 'Static'
+    version: 'IPv4'
+    dnsNameLabel: 'ipv4webappr2-${location2}'
   }
 }
-module appgwr2PublicIPv4 'br/public:avm/res/network/public-ip-address:0.7.0' = {
+
+module appgwr2PublicIPv6 'modules/pubipaddress.bicep' = {
+  name: 'appgwr2PublicIPv6'
+  scope: rg
+  params: {
+    name: 'appgwr2PublicIPv6'
+    location: location2
+    skuName: 'Standard'
+    allocationMethod: 'Static'
+    version: 'IPv6'
+    dnsNameLabel: 'ipv4webappr2-${location2}'
+  }
+}
+
+/*module appgwr2PublicIPv4 'br/public:avm/res/network/public-ip-address:0.7.0' = {
   name: 'appgwr2PublicIPv4'
   scope: rg
   params: {
@@ -590,8 +660,12 @@ module appgwr2PublicIPv4 'br/public:avm/res/network/public-ip-address:0.7.0' = {
     skuName: 'Standard'
     publicIPAllocationMethod: 'Static'
     publicIPAddressVersion: 'IPv4'
+    dnsSettings: {
+      domainNameLabelScope: 'NoReuse'
+      domainNameLabel: 'ipv4webappr2-${location2}'
+    }
   }
-}
+}*/
 module applicationGateway2 'br/public:avm/res/network/application-gateway:0.7.0' = {
   name: 'appgwr2Deployment'
   scope: rg
@@ -768,7 +842,7 @@ module vmr2RunContainer 'modules/vm-extension.bicep' = {
   params: {
     vmName: 'vm-r2'
     location: location2
-    containerImage: 'madedroo/azure-region-viewer:latest'
+    containerImage: containerImage
     containerPort: containerPort
     exposedPort: backendPort
   }
@@ -777,6 +851,16 @@ module vmr2RunContainer 'modules/vm-extension.bicep' = {
   ]
 }
 
+module trafficmgr 'modules/trafficmanager.bicep' = {
+  name: 'trafficmgrDeployment'
+  scope: rg
+  params: {
+    loc1: location1
+    loc2: location2
+    appgwr1PIPfqdn: appgwr1PublicIPv6.outputs.fqdn
+    appgwr2PIPfqdn: appgwr2PublicIPv6.outputs.fqdn
+  }
+}
 
 
 

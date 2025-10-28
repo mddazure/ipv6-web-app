@@ -1,7 +1,7 @@
-param loc1 string = 'swedencentral'
-param loc2 string = 'uksouth'
-param appgwr1PIPv4 string
-param appgwr2PIPv4 string
+param loc1 string 
+param loc2 string
+param appgwr1PIPfqdn string
+param appgwr2PIPfqdn string
 
 
 
@@ -34,7 +34,7 @@ resource trafficManager 'Microsoft.Network/trafficManagerProfiles@2024-04-01-pre
         name: 'appgwr1-endpoint'
         type: 'Microsoft.Network/trafficManagerProfiles/externalEndpoints'
         properties: {
-          target: appgwr1PIPv4
+          target: appgwr1PIPfqdn
           endpointStatus: 'Enabled'
           endpointLocation: loc1
         }
@@ -43,7 +43,7 @@ resource trafficManager 'Microsoft.Network/trafficManagerProfiles@2024-04-01-pre
         name: 'appgwr2-endpoint'
         type: 'Microsoft.Network/trafficManagerProfiles/externalEndpoints'
         properties: {
-          target: appgwr2PIPv4
+          target: appgwr2PIPfqdn
           endpointStatus: 'Enabled'
           endpointLocation: loc2
         }
