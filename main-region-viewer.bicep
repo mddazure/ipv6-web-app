@@ -58,7 +58,7 @@ param vnetr2spokeSubnet2IPv4Range string = '10.2.2.128/26'
 param vnetr2spokeSubnet2IPv6Range string = '2001:0db9:2:2::/64'
 
 // demo application container image
-param containerImage string = 'ipv6demoappacr.azurecr.io/ipv6demoapp:v3'
+param containerImage string = 'ipv6demoappacr.azurecr.io/azure-region-viewer:latest'
 
 //port backend vm's listen on
 param backendPort int = 80
