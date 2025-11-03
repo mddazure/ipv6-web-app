@@ -58,7 +58,7 @@ param vnetr2spokeSubnet2IPv4Range string = '10.2.2.128/26'
 param vnetr2spokeSubnet2IPv6Range string = '2001:0db9:2:2::/64'
 
 // demo application container image
-param containerImage string = 'ipv6demoappacr.azurecr.io/azure-region-viewer:latest'
+param containerImage string = 'madedroo/azure-region-viewer:latest'
 
 //port backend vm's listen on
 param backendPort int = 80
@@ -119,6 +119,29 @@ module vnetr1hub 'br/public:avm/res/network/virtual-network:0.7.0' = {
     ]
   }
 }
+module nsgr1 'br/public:avm/res/network/network-security-group:0.5.2' = {
+  name: 'nsgr1Deployment'
+  scope: rg
+  params: {
+    name: 'nsgr1'
+    location: location1
+    securityRules: [
+      {
+        name: 'Allow-HTTP-Inbound'
+        properties: {
+          priority: 100
+          direction: 'Inbound'
+          access: 'Allow'
+          protocol: 'Tcp'
+          sourcePortRange: '*'
+          destinationPortRange: '80'
+          sourceAddressPrefix: '*'
+          destinationAddressPrefix: '*'
+        }
+      }
+    ]
+  }
+}
 module vnetr1spoke 'br/public:avm/res/network/virtual-network:0.7.0' = {
   name: 'vnetr1spokeDeployment'
   scope: rg
@@ -128,31 +151,34 @@ module vnetr1spoke 'br/public:avm/res/network/virtual-network:0.7.0' = {
     
       addressPrefixes: [
       vnetr1spokeIPv4Range1
-      //vnetr1spokeIPv6Range1
+      vnetr1spokeIPv6Range1
       ]
     
     subnets: [
       {
       name: vnetr1spokeSubnet0Name
-        addressPrefixes: [
+      addressPrefixes: [
           vnetr1spokeSubnet0IPv4Range
-          //vnetr1spokeSubnet0IPv6Range
+          vnetr1spokeSubnet0IPv6Range
           ]
-        }
+      networkSecurityGroupResourceId: nsgr1.outputs.resourceId
+      }
       {
         name: vnetr1spokeSubnet1Name
 
           addressPrefixes: [
             vnetr1spokeSubnet1IPv4Range
-            //vnetr1spokeSubnet1IPv6Range
+            vnetr1spokeSubnet1IPv6Range
           ]
+        networkSecurityGroupResourceId: nsgr1.outputs.resourceId
         }    
     {
         name: vnetr1spokeSubnet2Name
         addressPrefixes: [
             vnetr1spokeSubnet2IPv4Range
-            //vnetr1spokeSubnet2IPv6Range
+            vnetr1spokeSubnet2IPv6Range
           ]
+        networkSecurityGroupResourceId: nsgr1.outputs.resourceId  
         }
 
     ]
@@ -221,40 +247,6 @@ module azfwr1PublicIP 'br/public:avm/res/network/public-ip-address:0.7.0' = {
 
   }
 }*/
-
-
-/*
-module appgwr1PublicIPv6 'br/public:avm/res/network/public-ip-address:0.7.0' = {
-  name: 'appgwr1PublicIP'
-  scope: rg
-  params: {
-    name: 'appgwr1PublicIPv6'
-    location: location1
-    skuName: 'Standard'
-    publicIPAllocationMethod: 'Static'
-    publicIPAddressVersion: 'IPv6'
-    dnsSettings: {
-      domainNameLabelScope: 'NoReuse'
-      domainNameLabel: 'ipv6webapp-${location1}'
-     }
-   }
-  }  
-module appgwr1PublicIPv4 'br/public:avm/res/network/public-ip-address:0.7.0' = {
-  name: 'appgwr1PublicIPv4'
-  scope: rg
-  params: {
-    name: 'appgwr1PublicIPv4'
-    location: location1
-    skuName: 'Standard'
-    publicIPAllocationMethod: 'Static'
-    publicIPAddressVersion: 'IPv4'
-    dnsSettings: {
-      domainNameLabelScope: 'NoReuse'
-      domainNameLabel: 'ipv4webapp-${location1}'
-     }
-  }
-}
-*/
 module appgwr1PublicIPv6 'modules/pubipaddress.bicep' = {
   name: 'appgwr1PublicIPv6'
   scope: rg
@@ -267,7 +259,6 @@ module appgwr1PublicIPv6 'modules/pubipaddress.bicep' = {
     dnsNameLabel: 'ipv6webapp-${location1}'
   }
 }
-
 module appgwr1PublicIPv4 'modules/pubipaddress.bicep' = {
   name: 'appgwr1PublicIPv4'
   scope: rg
@@ -280,7 +271,32 @@ module appgwr1PublicIPv4 'modules/pubipaddress.bicep' = {
     dnsNameLabel: 'ipv4webapp-${location1}'
   }
 }
+module elbr1PublicIPv6 'modules/pubipaddress.bicep' = {
+  name: 'elbr1PublicIPv6'
+  scope: rg
+  params: {
+    name: 'elbr1PublicIPv6'
+    location: location1
+    skuName: 'Standard'
+    allocationMethod: 'Static'
+    version: 'IPv6'
+    dnsNameLabel: 'ipv6webapp-elb-${location1}'
+  }
+}
 
+module elbr1PublicIPv4 'modules/pubipaddress.bicep' = {
+  name: 'elbr1PublicIPv4'
+  scope: rg
+  params: {
+    name: 'elbr1PublicIPv4'
+    location: location1
+    skuName: 'Standard'
+    allocationMethod: 'Static'
+    version: 'IPv4'
+    dnsNameLabel: 'ipv4webapp-elb-${location1}'
+  }
+}
+/*
 module applicationGateway1 'br/public:avm/res/network/application-gateway:0.7.0' = {
   name: 'appgwr1Deployment'
   scope: rg
@@ -409,8 +425,77 @@ module applicationGateway1 'br/public:avm/res/network/application-gateway:0.7.0'
       }
     ]
   }
+}*/
+module elbr1 'br/public:avm/res/network/load-balancer:0.6.0' = {
+  name: 'elbr1Deployment'
+  scope: rg
+  params: {
+    name: 'elbr1'
+    location: location1
+    frontendIPConfigurations: [
+      {
+        name: 'frontendIPv4'
+        publicIPAddressResourceId: elbr1PublicIPv4.outputs.resourceId
+      }
+      {
+        name: 'frontendIPv6'
+        publicIPAddressResourceId: elbr1PublicIPv6.outputs.resourceId
+      }
+    ]
+    backendAddressPools: [
+      {
+        name: 'backendPool1'
+        backendIPConfigurations: [
+          {
+            id: resourceId('Microsoft.Network/networkInterfaces', '${vmr1.outputs.name}-nic-01')
+            version: 'IPv4'
+          }
+        ]
+      }
+      {
+        name: 'backendPool2'
+        backendIPConfigurations: [
+          {
+            id: resourceId('Microsoft.Network/networkInterfaces', '${vmr1.outputs.name}-nic-01')
+            version: 'IPv6'
+          }
+        ]
+      }
+    ]
+    loadBalancingRules: [
+      {
+        name: 'httpRulev4'
+        frontendIPConfigurationName: 'frontendIPv4'
+        frontendPort: 80
+        version: 'IPv4'
+        backendPort: backendPort
+        protocol: 'Tcp'
+        backendAddressPoolName: 'backendPool1'
+        probeName: 'httpProbe'
+      }
+      {
+        name: 'httpRulev6'
+        frontendIPConfigurationName: 'frontendIPv6'
+        frontendPort: 80
+        version: 'IPv6'
+        backendPort: backendPort
+        protocol: 'Tcp'
+        backendAddressPoolName: 'backendPool2'
+        probeName: 'httpProbe'
+      }
+    ]
+    probes: [
+      {
+        name: 'httpProbe'
+        protocol: 'Http'
+        port: backendPort
+        requestPath: '/'
+        intervalInSeconds: 15
+        numberOfProbes: 4
+      }
+    ]
+  }
 }
-
 module vmr1 'br/public:avm/res/compute/virtual-machine:0.20.0' = {
   name: 'vmr1'
   scope: rg
@@ -426,19 +511,28 @@ module vmr1 'br/public:avm/res/compute/virtual-machine:0.20.0' = {
       sku: '22_04-lts-gen2'
       version: 'latest'
     }
-       nicConfigurations: [
-        {
+    nicConfigurations: [
+      {
         ipConfigurations: [
           {
             name: 'ipconfig01'
+            privateIPAddressVersion: 'IPv4'
             subnetResourceId: vnetr1spoke.outputs.subnetResourceIds[1]
             privateIPAllocationMethod: 'Dynamic'
           }
+          {
+            name: 'ipconfig02'
+            privateIPAddressVersion: 'IPv6'
+            subnetResourceId: vnetr1spoke.outputs.subnetResourceIds[1]
+            privateIPAllocationMethod: 'Dynamic'
+          }
+
         ]
         nicSuffix: '-nic-01'
         enableAcceleratedNetworking: false
       }
     ]
+    
     osDisk: {
       diskSizeGB: 30
       managedDisk: {
@@ -451,7 +545,6 @@ module vmr1 'br/public:avm/res/compute/virtual-machine:0.20.0' = {
     // container image will be started via a VM extension module
   }
 }
-
 module vmr1RunContainer 'modules/vm-extension.bicep' = {
   name: 'vmr1RunContainer'
   scope: rg
@@ -465,7 +558,10 @@ module vmr1RunContainer 'modules/vm-extension.bicep' = {
   dependsOn: [
     vmr1
   ]
+
 }
+
+/*
 // --- Deployment in location2 ---
 module vnetr2hub 'br/public:avm/res/network/virtual-network:0.7.0' = {
   name: 'vnetr2hubDeployment'
@@ -608,23 +704,7 @@ module azfwr2PublicIP 'br/public:avm/res/network/public-ip-address:0.7.0' = {
     ]
 
   }
-}*/
-/*
-module appgwr2PublicIPv6 'br/public:avm/res/network/public-ip-address:0.7.0' = {
-  name: 'appgwr2PublicIP'
-  scope: rg
-  params: {
-    name: 'appgwr2PublicIPv6'
-    location: location2
-    skuName: 'Standard'
-    publicIPAllocationMethod: 'Static'
-    publicIPAddressVersion: 'IPv6'
-    dnsSettings: {
-      domainNameLabelScope: 'NoReuse'
-      domainNameLabel: 'ipv6webapp-${location2}'
-    }
-  }
-}*/
+}
 module appgwr2PublicIPv4 'modules/pubipaddress.bicep' = {
   name: 'appgwr2PublicIPv4'
   scope: rg
@@ -637,7 +717,6 @@ module appgwr2PublicIPv4 'modules/pubipaddress.bicep' = {
     dnsNameLabel: 'ipv4webappr2-${location2}'
   }
 }
-
 module appgwr2PublicIPv6 'modules/pubipaddress.bicep' = {
   name: 'appgwr2PublicIPv6'
   scope: rg
@@ -650,22 +729,34 @@ module appgwr2PublicIPv6 'modules/pubipaddress.bicep' = {
     dnsNameLabel: 'ipv4webappr2-${location2}'
   }
 }
-
-/*module appgwr2PublicIPv4 'br/public:avm/res/network/public-ip-address:0.7.0' = {
-  name: 'appgwr2PublicIPv4'
+module elbr2PublicIPv6 'modules/pubipaddress.bicep' = {
+  name: 'elbr2PublicIPv6'
   scope: rg
   params: {
-    name: 'appgwr2PublicIPv4'
+    name: 'elbr2PublicIPv6'
     location: location2
     skuName: 'Standard'
-    publicIPAllocationMethod: 'Static'
-    publicIPAddressVersion: 'IPv4'
-    dnsSettings: {
-      domainNameLabelScope: 'NoReuse'
-      domainNameLabel: 'ipv4webappr2-${location2}'
-    }
+    allocationMethod: 'Static'
+    version: 'IPv6'
+    dnsNameLabel: 'ipv6webapp-elb-${location2}'
   }
-}*/
+}
+
+module elbr2PublicIPv4 'modules/pubipaddress.bicep' = {
+  name: 'elbr2PublicIPv4'
+  scope: rg
+  params: {
+    name: 'elbr2PublicIPv4'
+    location: location2
+    skuName: 'Standard'
+    allocationMethod: 'Static'
+    version: 'IPv4'
+    dnsNameLabel: 'ipv4webapp-elb-${location2}'
+  }
+}
+
+
+
 module applicationGateway2 'br/public:avm/res/network/application-gateway:0.7.0' = {
   name: 'appgwr2Deployment'
   scope: rg
@@ -861,7 +952,7 @@ module trafficmgr 'modules/trafficmanager.bicep' = {
     appgwr2PIPfqdn: appgwr2PublicIPv6.outputs.fqdn
   }
 }
-
+*/
 
 
 
