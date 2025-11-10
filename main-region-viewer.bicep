@@ -297,7 +297,7 @@ module elbr1PublicIPv4 'modules/pubipaddress.bicep' = {
     dnsNameLabel: 'ipv4webapp-elb-${location1}'
   }
 }
-/*
+
 module applicationGateway1 'br/public:avm/res/network/application-gateway:0.7.0' = {
   name: 'appgwr1Deployment'
   scope: rg
@@ -426,7 +426,7 @@ module applicationGateway1 'br/public:avm/res/network/application-gateway:0.7.0'
       }
     ]
   }
-}*/
+}
 module elbr1 'br/public:avm/res/network/load-balancer:0.6.0' = {
   name: 'elbr1Deployment'
   scope: rg
