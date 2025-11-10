@@ -1,4 +1,4 @@
-param rgName string = 'ipv6-web-app-rg'
+param rgName string = 'ipv6-web-app-rg-2'
 param subscriptionId string = subscription().subscriptionId
 param location1 string = 'swedencentral'
 param location2 string = 'eastus2'
@@ -184,13 +184,14 @@ module vnetr1spoke 'br/public:avm/res/network/virtual-network:0.7.0' = {
     ]
     peerings: [
       {
+        name: 'spoke-to-hub'
         allowForwardedTraffic: true
         allowGatewayTransit: false
         allowVirtualNetworkAccess: true
         remotePeeringAllowForwardedTraffic: true
         remotePeeringAllowVirtualNetworkAccess: true
         remotePeeringEnabled: true
-        remotePeeringName: 'customName'
+        remotePeeringName: 'hub-to-spoke'
         remoteVirtualNetworkResourceId: vnetr1hub.outputs.resourceId
         useRemoteGateways: false
       }
@@ -444,22 +445,10 @@ module elbr1 'br/public:avm/res/network/load-balancer:0.6.0' = {
     ]
     backendAddressPools: [
       {
-        name: 'backendPool1'
-        backendIPConfigurations: [
-          {
-            id: resourceId('Microsoft.Network/networkInterfaces', '${vmr1.outputs.name}-nic-01')
-            version: 'IPv4'
-          }
-        ]
+        name: 'backendPoolIPv4'
       }
       {
-        name: 'backendPool2'
-        backendIPConfigurations: [
-          {
-            id: resourceId('Microsoft.Network/networkInterfaces', '${vmr1.outputs.name}-nic-01')
-            version: 'IPv6'
-          }
-        ]
+        name: 'backendPoolIPv6'
       }
     ]
     loadBalancingRules: [
@@ -467,20 +456,18 @@ module elbr1 'br/public:avm/res/network/load-balancer:0.6.0' = {
         name: 'httpRulev4'
         frontendIPConfigurationName: 'frontendIPv4'
         frontendPort: 80
-        version: 'IPv4'
         backendPort: backendPort
         protocol: 'Tcp'
-        backendAddressPoolName: 'backendPool1'
+        backendAddressPoolName: 'backendPoolIPv4'
         probeName: 'httpProbe'
       }
       {
         name: 'httpRulev6'
         frontendIPConfigurationName: 'frontendIPv6'
         frontendPort: 80
-        version: 'IPv6'
         backendPort: backendPort
         protocol: 'Tcp'
-        backendAddressPoolName: 'backendPool2'
+        backendAddressPoolName: 'backendPoolIPv6'
         probeName: 'httpProbe'
       }
     ]
@@ -519,12 +506,22 @@ module vmr1 'br/public:avm/res/compute/virtual-machine:0.20.0' = {
             privateIPAddressVersion: 'IPv4'
             subnetResourceId: vnetr1spoke.outputs.subnetResourceIds[1]
             privateIPAllocationMethod: 'Dynamic'
+            loadBalancerBackendAddressPools: [
+              {
+                id: '${elbr1.outputs.resourceId}/backendAddressPools/backendPoolIPv4'
+              }
+            ]
           }
           {
             name: 'ipconfig02'
             privateIPAddressVersion: 'IPv6'
             subnetResourceId: vnetr1spoke.outputs.subnetResourceIds[1]
             privateIPAllocationMethod: 'Dynamic'
+            loadBalancerBackendAddressPools: [
+              {
+                id: '${elbr1.outputs.resourceId}/backendAddressPools/backendPoolIPv6'
+              }
+            ]
           }
 
         ]
@@ -560,6 +557,7 @@ module vmr1RunContainer 'modules/vm-extension.bicep' = {
   ]
 
 }
+
 
 /*
 // --- Deployment in location2 ---
@@ -927,7 +925,9 @@ module vmr2 'br/public:avm/res/compute/virtual-machine:0.20.0' = {
   }
 }
 
-module vmr2RunContainer 'modules/vm-extension.bicep' = {
+
+
+module vmr1RunContainer 'modules/vm-extension.bicep' = {
   name: 'vmr2RunContainer'
   scope: rg
   params: {
