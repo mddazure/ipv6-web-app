@@ -99,10 +99,9 @@ Azure External Load Balancer (also known as Standard Load Balancer) can be deplo
 
 Azure Global Load Balancer (also known as Cross-Region Load Balancer) provides a cloud-native global network load balancing solution for distributing traffic across multiple Azure regions with ultra-low latency and high performance. Unlike DNS-based solutions, **Global Load Balancer uses anycast IP addressing** to automatically route IPv6 clients to the nearest healthy regional deployment through Microsoft's global network backbone.
 
-**Key IPv6 Features of Global Load Balancer:**
-- **Static Anycast Global IP:** Global Load Balancer provides a single static public IP address (both IPv4 and IPv6 supported) that is advertised from multiple Azure regions globally. This anycast address ensures clients always connect to the nearest available region without requiring DNS resolution.
-- **Geo-Proximity Routing:** Traffic is intelligently routed based on the geographic location of users and regional deployments. When an IPv6 client connects, traffic automatically enters the closest participating Azure region and travels through Microsoft's global network backbone to reach the optimal regional deployment.
-- **Ultra-Low Latency:** The geo-proximity load-balancing algorithm minimizes latency by directing traffic to the nearest region. Unlike DNS-based routing, there's no DNS lookup delay - clients connect directly to the anycast IP and are immediately routed to the best region.
+**Key Features of Global Load Balancer:**
+- **Static Anycast Global IP:** Global Load Balancer provides a single static public IP address (both IPv4 and IPv6 supported) that is advertised from multiple Azure regions globally. This anycast address ensures clients always connect to the nearest available Microsoft edge node without requiring DNS resolution.
+- **Geo-Proximity Routing:** The geo-proximity load-balancing algorithm minimizes latency by directing traffic to the nearest region. Unlike DNS-based routing, there's no DNS lookup delay - clients connect directly to the anycast IP and are immediately routed to the best region.
 - **Layer 4 Pass-Through:** Global Load Balancer operates as a Layer 4 pass-through network load balancer, preserving the original client IP address (including IPv6 addresses) for backend applications to use in their logic.
 - **Regional Redundancy:** If one region fails, traffic is automatically routed to the next closest healthy regional load balancer within seconds, providing instant global failover without DNS propagation delays.
 

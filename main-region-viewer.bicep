@@ -58,7 +58,7 @@ param vnetr2spokeSubnet2IPv4Range string = '10.2.2.128/26'
 param vnetr2spokeSubnet2IPv6Range string = '2001:0db9:2:2::/64'
 
 // demo application container image
-param containerImage string = 'madedroo/azure-region-viewer:latest'
+param containerImage string = 'madedroo/azure-region-viewer:hostnet'
 
 //port backend vm's listen on
 param backendPort int = 80
