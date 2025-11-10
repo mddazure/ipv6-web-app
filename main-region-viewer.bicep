@@ -1,4 +1,4 @@
-param rgName string = 'ipv6-web-app-rg-2'
+param rgName string = 'ipv6-web-app-rg'
 param subscriptionId string = subscription().subscriptionId
 param location1 string = 'swedencentral'
 param location2 string = 'eastus2'
@@ -559,8 +559,31 @@ module vmr1RunContainer 'modules/vm-extension.bicep' = {
 }
 
 
-/*
+
 // --- Deployment in location2 ---
+module nsgr2 'br/public:avm/res/network/network-security-group:0.5.2' = {
+  name: 'nsgr2Deployment'
+  scope: rg
+  params: {
+    name: 'nsgr2'
+    location: location2
+    securityRules: [
+      {
+        name: 'Allow-HTTP-Inbound'
+        properties: {
+          priority: 100
+          direction: 'Inbound'
+          access: 'Allow'
+          protocol: 'Tcp'
+          sourcePortRange: '*'
+          destinationPortRange: '80'
+          sourceAddressPrefix: '*'
+          destinationAddressPrefix: '*'
+        }
+      }
+    ]
+  }
+}
 module vnetr2hub 'br/public:avm/res/network/virtual-network:0.7.0' = {
   name: 'vnetr2hubDeployment'
   scope: rg
@@ -584,19 +607,18 @@ module vnetr2hub 'br/public:avm/res/network/virtual-network:0.7.0' = {
         }
       {
         name: vnetr2hubSubnet1Name
-
-          addressPrefixes: [
-            vnetr2hubSubnet1IPv4Range
-            //vnetr2hubSubnet1IPv6Range
-          ]
-        }    
-    {
+        addressPrefixes: [
+          vnetr2hubSubnet1IPv4Range
+          vnetr2hubSubnet1IPv6Range
+        ]
+      }    
+      {
         name: vnetr2hubSubnet2Name
         addressPrefixes: [
-            vnetr2hubSubnet2IPv4Range
-            //vnetr2hubSubnet2IPv6Range
-          ]
-        }
+          vnetr2hubSubnet2IPv4Range
+          vnetr2hubSubnet2IPv6Range
+        ]
+      }
 
     ]
   }
@@ -610,32 +632,34 @@ module vnetr2spoke 'br/public:avm/res/network/virtual-network:0.7.0' = {
     
       addressPrefixes: [
       vnetr2spokeIPv4Range1
-      //vnetr2spokeIPv6Range1
-      ]
+      vnetr2spokeIPv6Range1
+    ]
     
     subnets: [
       {
-       name: vnetr2spokeSubnet0Name
-         addressPrefixes: [
-          vnetr2spokeSubnet0IPv4Range
-          //vnetr2spokeSubnet0IPv6Range
-          ]
-        }
+        name: vnetr2spokeSubnet0Name
+        addressPrefixes: [
+          vnetr2spokeSubnet0IPv4Range 
+          vnetr2spokeSubnet0IPv6Range
+        ]
+        networkSecurityGroupResourceId: nsgr2.outputs.resourceId
+      }
       {
         name: vnetr2spokeSubnet1Name
-
-          addressPrefixes: [
-            vnetr2spokeSubnet1IPv4Range
-            //vnetr2spokeSubnet1IPv6Range
-          ]
-        }    
-    {
+        addressPrefixes: [
+          vnetr2spokeSubnet1IPv4Range
+          vnetr2spokeSubnet1IPv6Range
+        ]
+        networkSecurityGroupResourceId: nsgr2.outputs.resourceId
+      }    
+      {
         name: vnetr2spokeSubnet2Name
         addressPrefixes: [
-            vnetr2spokeSubnet2IPv4Range
-            //vnetr2spokeSubnet2IPv6Range
-          ]
-        }
+          vnetr2spokeSubnet2IPv4Range
+          vnetr2spokeSubnet2IPv6Range
+        ]
+        networkSecurityGroupResourceId: nsgr2.outputs.resourceId  
+      }
 
     ]
     peerings: [
@@ -665,7 +689,8 @@ module azfwr2PublicIP 'br/public:avm/res/network/public-ip-address:0.7.0' = {
     publicIPAddressVersion: 'IPv4'
   }
 }
-/*module azfwr2 'br/public:avm/res/network/azure-firewall:0.8.0' = {
+/*
+module azfwr2 'br/public:avm/res/network/azure-firewall:0.8.0' = {
   name: 'azfwr2'
   scope: rg
   params: {
@@ -702,7 +727,7 @@ module azfwr2PublicIP 'br/public:avm/res/network/public-ip-address:0.7.0' = {
     ]
 
   }
-}
+}*/
 module appgwr2PublicIPv4 'modules/pubipaddress.bicep' = {
   name: 'appgwr2PublicIPv4'
   scope: rg
@@ -750,6 +775,63 @@ module elbr2PublicIPv4 'modules/pubipaddress.bicep' = {
     allocationMethod: 'Static'
     version: 'IPv4'
     dnsNameLabel: 'ipv4webapp-elb-${location2}'
+  }
+}
+
+module elbr2 'br/public:avm/res/network/load-balancer:0.6.0' = {
+  name: 'elbr2Deployment'
+  scope: rg
+  params: {
+    name: 'elbr2'
+    location: location2
+    frontendIPConfigurations: [
+      {
+        name: 'frontendIPv4'
+        publicIPAddressResourceId: elbr2PublicIPv4.outputs.resourceId
+      }
+      {
+        name: 'frontendIPv6'
+        publicIPAddressResourceId: elbr2PublicIPv6.outputs.resourceId
+      }
+    ]
+    backendAddressPools: [
+      {
+        name: 'backendPoolIPv4'
+      }
+      {
+        name: 'backendPoolIPv6'
+      }
+    ]
+    loadBalancingRules: [
+      {
+        name: 'httpRulev4'
+        frontendIPConfigurationName: 'frontendIPv4'
+        frontendPort: 80
+        backendPort: backendPort
+        protocol: 'Tcp'
+        backendAddressPoolName: 'backendPoolIPv4'
+        probeName: 'httpProbe'
+      }
+      {
+        name: 'httpRulev6'
+        frontendIPConfigurationName: 'frontendIPv6'
+        frontendPort: 80
+        backendPort: backendPort
+        protocol: 'Tcp'
+        backendAddressPoolName: 'backendPoolIPv6'
+        probeName: 'httpProbe'
+      }
+    ]
+    probes: [
+      {
+        name: 'httpProbe'
+        protocol: 'Http'
+        port: backendPort
+        requestPath: '/'
+        intervalInSeconds: 15
+        numberOfProbes: 4
+      }
+    ]
   }
 }
 
@@ -904,9 +986,27 @@ module vmr2 'br/public:avm/res/compute/virtual-machine:0.20.0' = {
         ipConfigurations: [
           {
             name: 'ipconfig01'
+            privateIPAddressVersion: 'IPv4'
             subnetResourceId: vnetr2spoke.outputs.subnetResourceIds[1]
             privateIPAllocationMethod: 'Dynamic'
+            loadBalancerBackendAddressPools: [
+              {
+                id: '${elbr2.outputs.resourceId}/backendAddressPools/backendPoolIPv4'
+              }
+            ]
           }
+          {
+            name: 'ipconfig02'
+            privateIPAddressVersion: 'IPv6'
+            subnetResourceId: vnetr2spoke.outputs.subnetResourceIds[1]
+            privateIPAllocationMethod: 'Dynamic'
+            loadBalancerBackendAddressPools: [
+              {
+                id: '${elbr2.outputs.resourceId}/backendAddressPools/backendPoolIPv6'
+              }
+            ]
+          }
+
         ]
         nicSuffix: '-nic-01'
         enableAcceleratedNetworking: false
@@ -927,7 +1027,7 @@ module vmr2 'br/public:avm/res/compute/virtual-machine:0.20.0' = {
 
 
 
-module vmr1RunContainer 'modules/vm-extension.bicep' = {
+module vmr2RunContainer 'modules/vm-extension.bicep' = {
   name: 'vmr2RunContainer'
   scope: rg
   params: {
@@ -942,6 +1042,7 @@ module vmr1RunContainer 'modules/vm-extension.bicep' = {
   ]
 }
 
+// --- Traffic Manager to distribute traffic between the two regions ---
 module trafficmgr 'modules/trafficmanager.bicep' = {
   name: 'trafficmgrDeployment'
   scope: rg
@@ -952,7 +1053,7 @@ module trafficmgr 'modules/trafficmanager.bicep' = {
     appgwr2PIPfqdn: appgwr2PublicIPv6.outputs.fqdn
   }
 }
-*/
+
 
 
 
