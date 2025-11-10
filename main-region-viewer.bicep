@@ -760,7 +760,7 @@ module appgwr2PublicIPv6 'modules/pubipaddress.bicep' = {
     skuName: 'Standard'
     allocationMethod: 'Static'
     version: 'IPv6'
-    dnsNameLabel: 'ipv4webappr2-${location2}'
+    dnsNameLabel: 'ipv6webappr2-${location2}'
   }
 }
 module elbr2PublicIPv6 'modules/pubipaddress.bicep' = {
