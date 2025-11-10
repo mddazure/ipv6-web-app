@@ -481,6 +481,17 @@ module elbr1 'br/public:avm/res/network/load-balancer:0.6.0' = {
         numberOfProbes: 4
       }
     ]
+    outboundRules: [
+      {
+        name: 'outboundRuleIPv4'
+        frontendIPConfigurationName: 'frontendIPv4'
+        backendAddressPoolName: 'backendPoolIPv4'
+        protocol: 'All'
+        allocatedOutboundPorts: 1024
+        enableTcpReset: true
+        idleTimeoutInMinutes: 4
+      }
+    ]
   }
 }
 module vmr1 'br/public:avm/res/compute/virtual-machine:0.20.0' = {
@@ -830,6 +841,17 @@ module elbr2 'br/public:avm/res/network/load-balancer:0.6.0' = {
         requestPath: '/'
         intervalInSeconds: 15
         numberOfProbes: 4
+      }
+    ]
+    outboundRules: [
+      {
+        name: 'outboundRuleIPv4'
+        frontendIPConfigurationName: 'frontendIPv4'
+        backendAddressPoolName: 'backendPoolIPv4'
+        protocol: 'All'
+        allocatedOutboundPorts: 1024
+        enableTcpReset: true
+        idleTimeoutInMinutes: 4
       }
     ]
   }
