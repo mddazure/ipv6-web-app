@@ -257,7 +257,7 @@ module appgwr1PublicIPv6 'modules/pubipaddress.bicep' = {
     skuName: 'Standard'
     allocationMethod: 'Static'
     version: 'IPv6'
-    dnsNameLabel: 'ipv6webapp-${location1}'
+    dnsNameLabel: 'ipv6webapp-appgw-${location1}'
   }
 }
 module appgwr1PublicIPv4 'modules/pubipaddress.bicep' = {
@@ -269,7 +269,7 @@ module appgwr1PublicIPv4 'modules/pubipaddress.bicep' = {
     skuName: 'Standard'
     allocationMethod: 'Static'
     version: 'IPv4'
-    dnsNameLabel: 'ipv4webapp-${location1}'
+    dnsNameLabel: 'ipv4webapp-appgw-${location1}'
   }
 }
 module elbr1PublicIPv6 'modules/pubipaddress.bicep' = {
@@ -748,7 +748,7 @@ module appgwr2PublicIPv4 'modules/pubipaddress.bicep' = {
     skuName: 'Standard'
     allocationMethod: 'Static'
     version: 'IPv4'
-    dnsNameLabel: 'ipv4webappr2-${location2}'
+    dnsNameLabel: 'ipv4webappr2-appggw-${location2}'
   }
 }
 module appgwr2PublicIPv6 'modules/pubipaddress.bicep' = {
@@ -760,7 +760,7 @@ module appgwr2PublicIPv6 'modules/pubipaddress.bicep' = {
     skuName: 'Standard'
     allocationMethod: 'Static'
     version: 'IPv6'
-    dnsNameLabel: 'ipv6webappr2-${location2}'
+    dnsNameLabel: 'ipv6webappr2-appggw-${location2}'
   }
 }
 module elbr2PublicIPv6 'modules/pubipaddress.bicep' = {
@@ -1075,6 +1075,100 @@ module trafficmgr 'modules/trafficmanager.bicep' = {
     appgwr2PIPfqdn: appgwr2PublicIPv6.outputs.fqdn
   }
 }
+// --- Global Load Balancer Public IP Addresses ---
+module glbPublicIPv4 'modules/pubipaddress.bicep' = {
+  name: 'glbPublicIPv4'
+  scope: rg
+  params: {
+    name: 'glbPublicIPv4'
+    location: location1
+    skuName: 'Standard'
+    allocationMethod: 'Static'
+    version: 'IPv4'
+    dnsNameLabel: 'globalipv4webapp-${uniqueString(rg.name)}'
+  }
+}
+module glbPublicIPv6 'modules/pubipaddress.bicep' = {
+  name: 'glbPublicIPv6'
+  scope: rg
+  params: {
+    name: 'glbPublicIPv6'
+    location: location1
+    skuName: 'Standard'
+    allocationMethod: 'Static'
+    version: 'IPv6'
+    dnsNameLabel: 'globalipv6webapp-${uniqueString(rg.name)}'
+  }
+}
+// --- Global Load Balancer ---
+module globallb 'br/public:avm/res/network/load-balancer:0.6.0' = {
+  name: 'globallbDeployment'
+  scope: rg
+  params: {
+    name: 'globallb'
+    location: location1
+        frontendIPConfigurations: [
+      {
+        name: 'frontendIPv4'
+        publicIPAddressResourceId: glbPublicIPv4.outputs.resourceId
+      }
+      {
+        name: 'frontendIPv6'
+        publicIPAddressResourceId: glbPublicIPv6.outputs.resourceId
+      }
+    ]
+    backendAddressPools: [
+      {
+        name: 'backendPoolIPv4'
+      }
+      {
+        name: 'backendPoolIPv6'
+      }
+    ]
+    loadBalancingRules: [
+      {
+        name: 'httpRulev4'
+        frontendIPConfigurationName: 'frontendIPv4'
+        frontendPort: 80
+        backendPort: 80
+        protocol: 'Tcp'
+        backendAddressPoolName: 'backendPoolIPv4'
+        probeName: 'httpProbe'
+      }
+      {
+        name: 'httpRulev6'
+        frontendIPConfigurationName: 'frontendIPv6'
+        frontendPort: 80
+        backendPort: 80
+        protocol: 'Tcp'
+        backendAddressPoolName: 'backendPoolIPv6'
+        probeName: 'httpProbe'
+      }
+    ]
+    probes: [
+      {
+        name: 'httpProbe'
+        protocol: 'Http'
+        port: 80
+        requestPath: '/'
+        intervalInSeconds: 15
+        numberOfProbes: 4
+      }
+    ]
+    outboundRules: [
+      {
+        name: 'outboundRuleIPv4'
+        frontendIPConfigurationName: 'frontendIPv4'
+        backendAddressPoolName: 'backendPoolIPv4'
+        protocol: 'All'
+        allocatedOutboundPorts: 1024
+        enableTcpReset: true
+        idleTimeoutInMinutes: 4
+      }
+    ]
+  }
+}
+
 
 
 

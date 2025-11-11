@@ -64,7 +64,7 @@ Next, we explore specific Azure services and architectures for IPv6 web delivery
 
 ### External Load Balancer - single region
 
-Azure External Load Balancer (also known as Standard Load Balancer) can be deployed in a single region to provide IPv6 access to applications running on virtual machines or VM scale sets. In a single-region setup, **External Load Balancer acts as a Layer 4 entry point** for IPv6 traffic, distributing connections across backend instances. This scenario is ideal when you have stateless applications or services that don't require Layer 7 features like SSL termination or path-based routing.
+Azure [External Load Balancer](https://learn.microsoft.com/en-us/azure/load-balancer/load-balancer-overview) (also known as Public Load Balancer) can be deployed in a single region to provide IPv6 access to applications running on virtual machines or VM scale sets. In a single-region setup, **External Load Balancer acts as a Layer 4 entry point** for IPv6 traffic, distributing connections across backend instances. This scenario is ideal when you have stateless applications or services that don't require Layer 7 features like SSL termination or path-based routing.
 
 **Key IPv6 Features of External Load Balancer**: 
 - **Dual-Stack Frontend:** Standard Load Balancer supports both [IPv4 and IPv6 frontends](https://learn.microsoft.com/en-us/azure/load-balancer/load-balancer-ipv6-overview) simultaneously. When configured as dual-stack, the load balancer gets two public IP addresses – one IPv4 and one IPv6 – and can distribute traffic from both IP families to the same backend pool.
@@ -72,6 +72,8 @@ Azure External Load Balancer (also known as Standard Load Balancer) can be deplo
 - **IPv6 Frontend Availability:** IPv6 support in Standard Load Balancer is available in all Azure regions. Basic Load Balancer does *not* support IPv6, so you must use Standard SKU.
 - **IPv6 Backend Pool Support:** While the frontend accepts IPv6 traffic, the load balancer will **not** translate IPv6 to IPv4. Backend pool members (VMs) must have private IPv6 addresses. You will need to add private IPv6 addressing to your existing VM IPv4-only infrastructure. This is in contrast to Application Gateway, discussed below, which will terminate inbound IPv6 network sessions and connect to the backend-end over IPv4.
 - **Protocol Support:** Supports TCP and UDP load balancing over IPv6, making it suitable for web applications, APIs, and other TCP-based services accessed by IPv6-only clients.
+
+![image](/images/elb-single-region.png)
 
 **Single Region Deployment Steps:** To set up an IPv6-capable External Load Balancer in one region, follow this high-level process:
 
@@ -84,20 +86,19 @@ Azure External Load Balancer (also known as Standard Load Balancer) can be deplo
 
 **Outcome:** In this single-region scenario, IPv6-only clients will resolve your application's hostname to an IPv6 address and connect to the External Load Balancer over IPv6. The load balancer then distributes this traffic across your backend VMs over IPv4 internally. This approach **requires no changes to your application code or VM configuration** – only the network frontend gains IPv6 capability.
 
-**Example:** Consider a web application running on a VM scale set behind an External Load Balancer in East US. The scale set VMs run your containerized application on port 8080 internally. To enable IPv6, you add IPv6 address space to the VNet, configure the load balancer with an IPv6 frontend IP (e.g., `2603:1030:1005:3::5a`), and create load balancing rules mapping port 80 on the IPv6 frontend to port 8080 on the backend VMs. You then create a DNS AAAA record for `api.contoso.com` pointing to that IPv6 address. Now IPv6-only mobile clients can successfully access your API because their DNS queries return the IPv6 address, and the Azure External Load Balancer listens on that address to distribute requests across your scale set.
+**Example:** Consider a [web application](https://github.com/mddazure/azure-region-viewer) running on a VM (or a VM scale set) behind an External Load Balancer in Sweden Central. The VM runs a containerized application exposed on port 80, which displays the region the VM is deployed in and the calling client's IP address. The load balancer's front-end IPv6 address has a DNS name of `ipv6webapp-elb-swedencentral.swedencentral.cloudapp.azure.com`. When called from a client with an IPv6 address, the application shows its region and the client's address.
 
-![iamge](/images/elb-single-region.png)
+![image](/images/client-view-elb-single-region.png)
 
 **Limitations & Considerations:**
 - *Standard SKU Required:* Basic Load Balancer does not support IPv6. You must use Standard Load Balancer, which has different pricing and capabilities.
 - *Layer 4 Only:* Unlike Application Gateway, External Load Balancer operates at Layer 4 (transport layer). It cannot perform SSL termination, cookie-based session affinity, or path-based routing. If you need these features, consider Application Gateway instead.
-- *Dual stack IPv4/IPv6 Backend requireds:* Backend pool members must have private IPv6 addresses to receive inbound IPv6 traffic via the load balancer. The load balancer does not translate between the IPv6 frontend and an IPv4 backend.
-- *Outbound Connectivity:* If your backend VMs need outbound internet access over IPv6, you'll need to configure outbound rules or use NAT Gateway with IPv6 support (when available). Standard Load Balancer provides outbound SNAT for IPv4 but IPv6 outbound connectivity has different requirements.
-- *Monitoring and Diagnostics:* The load balancer will log connections from IPv6 clients in Azure Monitor metrics and diagnostic logs. Ensure your monitoring solutions can parse and display IPv6 addresses correctly.
+- *Dual stack IPv4/IPv6 Backend required:* Backend pool members must have private IPv6 addresses to receive inbound IPv6 traffic via the load balancer. The load balancer does not translate between the IPv6 frontend and an IPv4 backend.
+- *Outbound Connectivity:* If your backend VMs need outbound internet access over IPv6, you need to configure an IPv6 outbound rule.
 
 ### Global Load Balancer - multi-region
 
-Azure Global Load Balancer (also known as Cross-Region Load Balancer) provides a cloud-native global network load balancing solution for distributing traffic across multiple Azure regions with ultra-low latency and high performance. Unlike DNS-based solutions, **Global Load Balancer uses anycast IP addressing** to automatically route IPv6 clients to the nearest healthy regional deployment through Microsoft's global network backbone.
+Azure [Global Load Balancer](https://learn.microsoft.com/en-us/azure/load-balancer/cross-region-overview) (aka Cross-Region Load Balancer) provides a cloud-native global network load balancing solution for distributing traffic across multiple Azure regions. Unlike DNS-based solutions, Global Load Balancer uses anycast IP addressing to automatically route IPv6 clients to the nearest healthy regional deployment through Microsoft's global network.
 
 **Key Features of Global Load Balancer:**
 - **Static Anycast Global IP:** Global Load Balancer provides a single static public IP address (both IPv4 and IPv6 supported) that is advertised from multiple Azure regions globally. This anycast address ensures clients always connect to the nearest available Microsoft edge node without requiring DNS resolution.
@@ -107,9 +108,11 @@ Azure Global Load Balancer (also known as Cross-Region Load Balancer) provides a
 
 **Architecture Overview:** Global Load Balancer sits in front of multiple regional Standard Load Balancers, each deployed in different Azure regions. Each regional load balancer serves a local deployment of your application with IPv6 frontends. The global load balancer provides a single anycast IP address that clients worldwide can use to access your application, with automatic routing to the nearest healthy region.
 
+![image](/images/glb-dual-region.png)
+
 **Multi-Region Deployment Steps:**
 
-1. **Deploy Regional Load Balancers**: Create Standard External Load Balancers in multiple Azure regions (e.g., East US, West Europe, Southeast Asia). Configure each with dual-stack frontends (IPv4 and IPv6 public IPs) and connect them to regional VM deployments or VM scale sets running your application.
+1. **Deploy Regional Load Balancers**: Create Standard External Load Balancers in multiple Azure regions (e.g. Sweden Central, East US2). Configure each with dual-stack frontends (IPv4 and IPv6 public IPs) and connect them to regional VM deployments or VM scale sets running your application.
 
 2. **Create Global Load Balancer**: Deploy the Global Load Balancer in one of the supported [home regions](https://learn.microsoft.com/en-us/azure/load-balancer/cross-region-overview#home-regions-in-azure) (such as East US, West Europe, or North Europe). The home region only affects where the global load balancer resource is deployed - it doesn't impact traffic routing.
 
@@ -125,9 +128,16 @@ Azure Global Load Balancer (also known as Cross-Region Load Balancer) provides a
 
 **Outcome:** IPv6 clients connecting to your application's hostname will resolve to the global load balancer's anycast IPv6 address. When they connect to this address, the Microsoft global network infrastructure automatically routes their connection to the nearest participating Azure region. The regional load balancer then distributes the traffic across local backend instances. If that region becomes unavailable, subsequent connections are automatically routed to the next nearest healthy region.
 
-**Example:** A global IoT data collection service is deployed across East US, West Europe, and Southeast Asia using regional load balancers with IPv6 frontends. A Global Load Balancer provides the anycast address `2603:1030:0:5::8a` for `iot.contoso.com`. When an IPv6-only IoT device in Japan connects to this address, the anycast routing automatically directs the connection to the Southeast Asia region through Microsoft's backbone network. If the Southeast Asia region experiences issues, the device's next connection attempt is automatically routed to West Europe without any configuration changes or DNS updates required.
+**Example:** Our web application, which displays the region it is in, and the calling client's IP address, now runs on VMs behind External Load Balancers in Sweden Central and East US2.  The External Load Balancer's front-ends are in the backend pool of a Global Load Balancer, which has a Global tier front-end IPv6 address. The front-end has an FQDN of `ipv6webapp-glb.eastus2.cloudapp.azure.com` (the region designation `eastus2` in the FQDN refers to the Global Load Balancer's "home region", into which the Global tier public IP must be deployed). When called from a client in Europe, Global Load Balancer directs the request to the instance deployed in Sweden Central.
 
-**Advanced Features:**
+![image](/images/client-view-glb-from-sweden.png)
+
+When called from a client in the US, Global Load Balancer directs the request to the instance deployed in US East 2.
+
+![image](/images/client-view-glb-from-uswest3.png)
+
+
+**Features:**
 - **Client IP Preservation**: The original IPv6 client address is preserved and available to backend applications, enabling IP-based logic and compliance requirements.
 - **Floating IP Support**: Configure floating IP at the global level for advanced networking scenarios requiring direct server return or high availability clustering.
 - **Instant Scaling**: Add or remove regional deployments behind the global endpoint without service interruption, enabling dynamic scaling for traffic events.
@@ -141,58 +151,60 @@ Azure Global Load Balancer (also known as Cross-Region Load Balancer) provides a
 - *Port Consistency:* Backend port on global load balancer must match the frontend port of regional load balancers for proper traffic flow.
 - *Health Probe Dependencies:* Regional load balancers must have proper health probes configured for the global load balancer to accurately assess regional health.
 
-**Monitoring and Management:**
-- **Health Monitoring**: Global Load Balancer provides real-time health status of all regional endpoints through Azure Monitor metrics and logs.
-- **Traffic Distribution**: Monitor traffic distribution across regions and adjust regional capacity based on actual usage patterns.
-- **Failover Testing**: Test regional failover by stopping regional load balancers and observing automatic traffic redirection.
-- **Performance Metrics**: Track latency improvements achieved through geo-proximity routing compared to single-region deployments.
-
 **Comparison with DNS-Based Solutions:**
 Unlike Traffic Manager or other DNS-based global load balancing solutions, Global Load Balancer provides:
-- **Instant Failover**: No DNS TTL delays - failover happens within seconds at the network level
-- **True Anycast**: Single IP address that works globally without client-side DNS resolution
-- **Consistent Performance**: Geo-proximity routing through Microsoft's backbone network ensures optimal paths
-- **Simplified Management**: No DNS record management or TTL considerations
+- **Instant Failover**: No DNS TTL delays - failover happens within seconds at the network level.
+- **True Anycast**: Single IP address that works globally without client-side DNS resolution.
+- **Consistent Performance**: Geo-proximity routing through Microsoft's backbone network ensures optimal paths.
+- **Simplified Management**: No DNS record management or TTL considerations.
 
-This architecture delivers **true global high availability and optimal performance** for IPv6 applications through intelligent anycast routing, making it ideal for latency-sensitive applications requiring worldwide accessibility with instant regional failover capabilities.
-
+This architecture delivers **global high availability and optimal performance** for IPv6 applications through anycast routing, making it a good solution for latency-sensitive applications requiring worldwide accessibility with near-instant regional failover.
 
 ### Application Gateway - single region
 
-Azure Application Gateway can be deployed in a single region to provide IPv6 access to applications in that region. In a single-region setup, **Application Gateway acts as the entry point** for IPv6 traffic, terminating HTTP/S from IPv6 clients and forwarding to backend servers (which can be IPv4). This scenario is ideal when your web application is served from one Azure region and you want to enable IPv6 connectivity for it.
+[Azure Application Gateway](https://learn.microsoft.com/en-us/azure/application-gateway/overview) can be deployed in a single region to provide IPv6 access to applications in that region. Application Gateway acts as the entry point for IPv6 traffic, terminating HTTP/S from IPv6 clients and forwarding to backend servers over IPv4. This scenario works well when your web application is served from one Azure region and you want to enable IPv6 connectivity for it.
 
 **Key IPv6 Features of Application Gateway (v2 SKU)**: 
-- **Dual-Stack Frontend:** Application Gateway v2 supports both [IPv4 and IPv6 frontends](https://learn.microsoft.com/en-us/azure/application-gateway/application-gateway-faq). When configured as dual-stack, the gateway gets two IP addresses – one IPv4 and one IPv6 – and can listen on both. (IPv6-only mode is not supported; IPv4 is always paired).
-- **IPv6 Frontend Availability:** IPv6 support in Application Gateway is available in all public Azure regions that support v2 SKU. Application Gateway v1 does *not* support IPv6, because v1 cannot operate in dual-stack mode.
-- **No IPv6 on Backends:** The backend pool must use IPv4 addresses or host names. IPv6 addresses for backend servers are currently not supported. This means your web servers can remain on IPv4 internal addresses, simplifying adoption because you only enable IPv6 on the frontend.
-- **WAF Support:** The Application Gateway WAF (Web Application Firewall) will inspect IPv6 client traffic just as it does IPv4. Some WAF features like custom rules matching on IP addresses might not support IPv6 addresses yet.
+- **Dual-Stack Frontend:** Application Gateway v2 supports both [IPv4 and IPv6 frontends](https://learn.microsoft.com/en-us/azure/application-gateway/application-gateway-faq). When configured as dual-stack, the gateway gets two IP addresses – one IPv4 and one IPv6 – and can listen on both. (IPv6-only mode is not supported; IPv4 is always paired). IPv6 support requires Application Gateway v2, v1 does not support IPv6.
+- **No IPv6 on Backends:** The backend pool must use IPv4 addresses. IPv6 addresses for backend servers are currently not supported. This means your web servers can remain on IPv4 internal addresses, simplifying adoption because you only enable IPv6 on the frontend.
+- **WAF Support:** The Application Gateway WAF (Web Application Firewall) will inspect IPv6 client traffic just as it does IPv4. 
+  
+![image](images/appgw-single-region.png)
 
 **Single Region Deployment Steps:** To set up an IPv6-capable Application Gateway in one region, consider the following high-level process:
 
-1. **Enable IPv6 on the Virtual Network:** Ensure the region’s VNet where the Application Gateway will reside has an IPv6 address space. Add a *dual-stack address space* to the VNet (e.g., if your VNet was IPv4-only 10.0.0.0/16, add an IPv6 space like 2001:db8:1234::/56). Configure a subnet for the Application Gateway that is dual-stack (contains both an IPv4 subnet prefix and an IPv6 /64 prefix). Azure’s dual-stack networking will assign the gateway resources addresses in both subnets.
-2. **Deploy Application Gateway (v2) with DualStack Frontend:** In the Azure Portal or CLI, create a new Application Gateway using the **Standard_v2 or WAF_v2 SKU**. In the “Basics” or networking settings, choose **IP address type: Dual Stack (IPv4 & IPv6)**. This will prompt you to either select existing or create new public IP resources – one IPv4 and one IPv6. Supply or create a new Public IPv6 Address resource for the gateway’s frontend. Azure will allocate an IPv6 address from the regional pool.
-3. **Configure Listeners and Rules:** Set up listeners on the Application Gateway for your site. Typically, you’ll have a listener that binds to *Both* the IPv4 and IPv6 frontends on a given port. In Azure Portal, when creating an HTTP(S) listener, you choose which frontend IP to use – you would create one listener for IPv4 address and one for IPv6. Both listeners can use the same domain name (hostname) and the same underlying routing rule to your backend pool.
-4. **Populate Backend Pool:** Ensure your backend pool (the target application servers or service) contains the IPv4 addresses or DNS names of your actual web servers. For example, if using Azure VM scale-set or App Service, add those (they remain IPv4). IPv6 addresses are not supported for backends.
-5. **Testing and DNS:** After the gateway is deployed and configured, note the IPv6 address of the frontend (you can find it in the Gateway’s overview or in the associated Public IP resource). Update your application’s DNS records: create an **AAAA record** pointing to this IPv6 address (and update the A record to point to the IPv4 if it changed). With DNS in place, test the application by accessing it from an IPv6-enabled client or tool.
+1. **Enable IPv6 on the Virtual Network:** Ensure the region’s VNet where the Application Gateway will reside has an IPv6 address space. Configure a subnet for the Application Gateway that is dual-stack (contains both an IPv4 subnet prefix and an IPv6 /64 prefix). Azure’s dual-stack networking will assign the gateway resources addresses in both subnets.
 
-**Outcome:** In this single-region scenario, IPv6-only clients will resolve your website’s hostname to an IPv6 address and connect to the Application Gateway over IPv6. The Application Gateway then handles the traffic and forwards it to your application over IPv4 internally. From the user perspective, the service now appears natively on IPv6. Importantly, this **does not require any changes to the web servers**, which can continue using IPv4. Microsoft’s guidance notes that introducing an IPv6 frontend “only impacts the front-end; you do not need to assign any internal IPv6 address space to use this”[1](https://techcommunity.microsoft.com/blog/fasttrackforazureblog/adopting-public-ipv6-for-three-tier-web-applications/4211584). This makes it relatively straightforward to add IPv6 support to existing Azure deployments: add IPv6 addresses at the front door (load balancer or gateway), keep everything behind it as is.
+2. **Deploy Application Gateway (v2) with Dual Stack Frontend:** ICreate a new Application Gateway using the **Standard_v2 or WAF_v2 SKU**. In networking settings, choose **IP address type: Dual Stack (IPv4 & IPv6)**. This will prompt you to either select existing or create new public IP resources – one IPv4 and one IPv6. 
+Application Gateway v2 supports private IPv4 and IPv6 front-ends in addition to the public front-ends.
 
-**Example:** Suppose you have a web app, http://yada-r1.dedroog.net, running on a [Container Instance](https://learn.microsoft.com/en-us/azure/container-instances/container-instances-overview) that is [VNET injected](https://learn.microsoft.com/en-us/azure/container-instances/container-instances-virtual-network-concepts), private networking only, into a Spoke VNET. The web app is exposed publically via Application Gateway in a hub VNET. To enable IPv6, you add an IPv6 /56 segment to the Hub VNet and a /64 segment to the subnet dedicated to Application Gateway. Then (re)deploy Application Gateway v2 in dual-stack mode. The gateway now has a public IPv6 address similar to  `2603:1020:1001:11::4fa`. You create a DNS AAAA record for `www.yada-r1.dedroog.net` pointing to that IPv6 address. Now a customer on a mobile network that is IPv6-only can successfully load http://yada-r1.dedroog.net because their DNS query returns the IPv6 address, and the Azure Application Gateway listens on that address to serve the request.
+1.  **Populate Backend Pool:** Ensure your backend pool (the target application servers or service) contains (DNS names pointing to) IPv4 addresses of your actual web servers. IPv6 addresses are not supported for backends.
 
-![image](images/appgw-single-region.png)
+2.  **Configure Listeners and Rules:** Set up listeners on the Application Gateway for your site. Typically, you’ll have a listener that binds to *Both* the IPv4 and IPv6 frontends on a given port. When creating an HTTP(S) listener, you choose which frontend IP to use – you would create one listener for IPv4 address and one for IPv6. Both listeners can use the same domain name (hostname) and the same underlying routing rule to your backend pool.
 
-**Limitations & Considerations:** Be aware of a few limitations in this scenario:
+3.   **Testing and DNS:** After the gateway is deployed and configured, note the IPv6 address of the frontend (you can find it in the Gateway’s overview or in the associated Public IP resource). Update your application’s DNS records: create an **AAAA record** pointing to this IPv6 address (and update the A record to point to the IPv4 if it changed). With DNS in place, test the application by accessing it from an IPv6-enabled client or tool.
+
+**Outcome:** In this single-region scenario, IPv6-only clients will resolve your website’s hostname to an IPv6 address and connect to the Application Gateway over IPv6. The Application Gateway then handles the traffic and forwards it to your application over IPv4 internally. From the user perspective, the service now appears natively on IPv6. Importantly, this **does not require any changes to the web servers**, which can continue using IPv4. 
+
+Application Gateway will include the source IPv6 address in an X-Forwarded-For header, so that the backend application has visibility of the originating client's address.
+
+**Example:** Our web application, which displays the region it is deployed in and the calling client's IP address, now runs on a VM behind Application Gateway in Sweden Central. The front-end has an FQDN of `ipv6webapp-appgw-swedencentral.swedencentral.cloudapp.azure.com`. 
+Application Gateway terminates the IPv6 connection from the client and proxies the traffic to the application over IPv4. The client's IPv6 address is passed in the X-Forwarded-For header, which is read and displayed by the application.
+
+![image](/images/client-view-appg-single-region.png)
+
+**Limitations & Considerations:** 
 - *Application Gateway v1 SKUs are not supported for IPv6.* If you have an older deployment on v1, you’ll need to migrate to v2.
 - *IPv6-only Application Gateway is not allowed.* You must have IPv4 alongside IPv6 (the service must be dual-stack). This is usually fine, as dual-stack ensures all clients are covered.
-- *No IPv6 backend addresses:* As noted, your backend pool will use IPv4 addresses. IPv6 for internal servers may come in the future, but currently all traffic will be translated to IPv4 when the gateway forwards it.
-- *Management and Monitoring:* The Application Gateway will log traffic from IPv6 clients in its access logs (the client IP field will show IPv6 addresses). Ensure your monitoring solutions can handle and display IPv6 addresses. Azure Monitor and Network Watcher support IPv6 in NSG flow logs and metrics similarly to IPv4. You might consider enabling Azure Monitor alerts if the gateway’s IPv6 frontend goes down or seeing metrics split by protocol.
-- *Client & Internet Reachability:* Azure’s IPv6 addresses are globally routable. Clients on the IPv6 internet should reach the gateway without issue. Azure’s infrastructure provides basic DDoS protection for IPv6 endpoints just as for IPv4. For enhanced mitigation, consider Azure DDoS Protection Standard which supports IPv6 as well, to defend against volumetric attacks on your IPv6 address.
+- *No IPv6 backend addresses:* The backend pool must have IPv4 addresses. 
+- *Management and Monitoring:* Application Gateway logs traffic from IPv6 clients in its access logs (the client IP field will show IPv6 addresses).  Azure Monitor and Network Watcher support IPv6 in NSG flow logs and metrics similarly to IPv4. 
+- *Security:* Azure’s infrastructure provides basic DDoS protection for IPv6 endpoints just as for IPv4. For enhanced mitigation, consider Azure DDoS Protection Standard which supports IPv6 as well, to defend against volumetric attacks on your IPv6 address. Consider using the Web Application Firewall function for protection against application layer attacks.
 
 ### Application Gateway - multi-region
 
 For mission-critical web applications, you should deploy in **multiple Azure regions** to achieve higher availability and lower latency for users worldwide. In a multi-region scenario, you need a mechanism to direct IPv6 client traffic to the “nearest” or healthiest region. Azure Application Gateway by itself is a regional service, so to use it in multiple regions, we use **Azure Traffic Manager** for global DNS load balancing, or use Azure Front Door (covered in the next section) as an alternative. This section will focus on the **Traffic Manager + Application Gateway** approach to multi-region IPv6 delivery.
 
-**Using Traffic Manager for Multi-Region IPv6**: Azure Traffic Manager (TM) is a DNS-based load balancer that can distribute traffic across endpoints in different regions. It works by responding to DNS queries with the appropriate endpoint IP (or domain) based on the configured routing method (e.g., Performance, Priority, Geographic, etc.). Importantly, Traffic Manager is agnostic to IP version: it can return **AAAA records for IPv6 endpoints** just as it returns A records for IPv4. This makes it suitable for routing IPv6 traffic globally.
+**Using Traffic Manager for Multi-Region IPv6**: Azure Traffic Manager (TM) is a DNS-based load balancer that can distribute traffic across endpoints in different regions. It works by responding to DNS queries with the appropriate endpoint IP (or domain) based on the configured routing method (Performance, Priority, Geographic). Traffic Manager is agnostic to the IP version: it returns AAAA records for IPv6 endpoints and A records for IPv4. This makes it suitable for routing IPv6 traffic globally.
 
 **Architecture Overview:** In this setup, each region has its own dual-stack Application Gateway (with an IPv6 frontend). Traffic Manager is configured with an endpoint entry for each region’s gateway. When an IPv6-only client tries to reach the application’s URL, the DNS resolution will go through Traffic Manager, which decides which regional gateway’s IP to return. The client then connects directly to that Application Gateway’s IPv6 address, as follows:
 
@@ -200,7 +212,7 @@ For mission-critical web applications, you should deploy in **multiple Azure reg
 2. **Traffic Manager decision**: Traffic Manager sees an incoming DNS request (which may come with the client’s IP context) and chooses the best endpoint (say, the Sweden Central) based on routing rules (e.g., geographic proximity or lowest latency).
 3. **DNS response**: Traffic Manager returns the IPv6 address (AAAA record) of the Sweden Central Application Gateway to the client. If the client were IPv4, it’d return the IPv4 address (A record) for that region’s gateway similarly.
 4. **Client connects**: The client’s browser connects to the West Europe App Gateway IPv6 address directly. The HTTP/S session is established via IPv6 to that regional gateway, which then handles the request (possibly forwarding to its local backend pool).
-5. If that region becomes unavailable, Traffic Manager’s health checks will detect it and subsequent DNS queries will get an answer pointing to the secondary region’s gateway. This **failover** can happen for both IPv4 and IPv6 seamlessly, since Traffic Manager monitors endpoint health over both IPs.
+5. **Failover**: If that region becomes unavailable, Traffic Manager’s health checks will detect it and subsequent DNS queries will get an answer pointing to the secondary region’s gateway. 
 
 **Deployment Steps for Multi-Region with Traffic Manager:**
 
