@@ -367,7 +367,7 @@ Change directory:
 
 Deploy the Bicep template:
 
-      az deployment sub create --location swedencentral --template-file main-region-viewer.bicep
+      az deployment sub create --location swedencentral --template-file templates/main-region-viewer.bicep
 
 Verify that all components have been deployed to the resourcegroup `ipv6-web-app-rg` and are healthy.
 
