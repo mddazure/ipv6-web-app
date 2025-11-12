@@ -13,7 +13,7 @@ resource trafficManager 'Microsoft.Network/trafficManagerProfiles@2024-04-01-pre
     profileStatus: 'Enabled'
     trafficRoutingMethod: 'Performance'
     dnsConfig: {
-      relativeName: 'dedroog'
+      relativeName: 'ipv6webapp'
       ttl: 30
     }
     monitorConfig: {
