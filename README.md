@@ -8,7 +8,7 @@ IPv6 client access measured by Google:
 
 ![image](/images/google-ipv6-client-access.png)
 
-Ultimately IPv6 will be the dominant network protocol on the internet, as the IPv4 life-support mechanisms used by network operators, hosting providers and ISPs will eventually reach the limits of their scalability.
+Ultimately IPv6 will be the dominant network protocol on the internet, as the IPv4 life-support mechanisms used by network operators, hosting providers and ISPs will eventually reach the limits of their scalability. Mobile networks are already changing to IPv6-only APNs; reachability of IPv4-only destinations from these mobile network is through 6-4 NAT gateways, which sometimes causes problems.
 
 Meanwhile, countries around the world are requiring IPv6 reachability for public web services. Examples are [the United States](https://www.whitehouse.gov/wp-content/uploads/2020/11/M-21-07.pdf), European Union member states among which [the Netherlands](https://www.forumstandaardisatie.nl/ipv6), [Norway](https://lovdata.no/dokument/SF/forskrift/2013-04-05-959#shareModal), [India](https://dot.gov.in/ipv6-transition-across-stakeholders), Japan.
 
@@ -328,12 +328,12 @@ Private Link transforms Azure Front Door from a global entry point into a fully 
 
 ## Conclusion
 
-IPv6 adoption for web applications is no longer optional — it is essential as IPv4 address exhaustion continues and governments worldwide mandate IPv6 reachability for public services. Azure's comprehensive dual-stack networking capabilities provide a clear path forward, enabling organizations to embrace IPv6 without sacrificing IPv4 compatibility or requiring complete infrastructure overhauls.
+IPv6 adoption for web applications is no longer optional. It is essential as public IPv4 address space is depleted, mobile networks increasingly use IPv6 only and governments mandate IPv6 reachability for public services. Azure's comprehensive dual-stack networking capabilities provide a clear path forward, enabling organizations to leverage IPv6 externally without sacrificing IPv4 compatibility or requiring complete infrastructure overhauls.
 
-Azure's externally facing services — including Application Gateway, External Load Balancer, Global Load Balancer, and Front Door — support IPv6 frontends while maintaining IPv4 backend connectivity. This architecture allows applications to remain unchanged while instantly becoming accessible to IPv6-only clients, dramatically expanding potential user reach.
+Azure's externally facing services — including Application Gateway, External Load Balancer, Global Load Balancer, and Front Door — support IPv6 frontends, while Application Gateway and Front Door maintain IPv4 backend connectivity. This architecture allows applications to remain unchanged while instantly becoming accessible to IPv6-only clients.
 
-For single-region deployments, Application Gateway offers layer-7 features like SSL termination and WAF protection, while External Load Balancer provides high-performance layer-4 distribution. Multi-region scenarios benefit from Traffic Manager's DNS-based routing combined with regional Application Gateways, or the superior performance and failover capabilities of Global Load Balancer's anycast addressing.
+For single-region deployments, Application Gateway offers layer-7 features like SSL termination and WAF protection. External Load Balancer provides high-performance layer-4 distribution. Multi-region scenarios benefit from Traffic Manager's DNS-based routing combined with regional Application Gateways, or the superior performance and failover capabilities of Global Load Balancer's anycast addressing.
 
 Azure Front Door provides global IPv6 delivery with edge optimization, built-in security, and seamless failover across Microsoft's network. Private Link integration allows secure global IPv6 distribution while maintaining backend isolation.
 
-The transition to IPv6 on Azure is straightforward: enable dual-stack addressing on virtual networks, configure IPv6 frontends on load balancing services, and update DNS records. Backend applications require no modifications, as Azure services handle the IPv4-to-IPv6 translation seamlessly. This approach ensures both immediate IPv6 accessibility and long-term architectural flexibility as IPv6 adoption accelerates globally.
+The transition to IPv6 application delivery on Azure is straightforward: enable dual-stack addressing on virtual networks, configure IPv6 frontends on load balancing services, and update DNS records. With Application Gateway or Front Door, backend applications require no modifications. These Azure services handle the IPv4-to-IPv6 translation seamlessly. This approach ensures both immediate IPv6 accessibility and long-term architectural flexibility as IPv6 adoption accelerates globally.
