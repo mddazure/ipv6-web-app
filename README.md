@@ -1,4 +1,4 @@
-# Delivering web applications over IPv6
+# **Delivering web applications over IPv6**
 
 The unallocated IPv4 address space pool has been exhausted for some time now, meaning there is no new public address space available for allocation from Internet Registries. The internet continues to run on IPv4 through technical measures such as Network Address Translation (NAT) and [Carrier Grade NAT](https://en.wikipedia.org/wiki/Carrier-grade_NAT), and reallocation of address space through [IPv4 address space trading](https://iptrading.com/). 
 
@@ -286,7 +286,9 @@ For applications that have users worldwide, Front Door offers advantages:
 - **Layer-7 Routing:** Supports path-based routing and automatic backend health detection.
 - **Edge Security:** Includes DDoS protection and optional WAF integration.
 
-Azure Front Door does not support IPv6 origins (i.e. backends) at the time of this writing in October 2025. While Front Door itself is dual-stack and accepts client traffic over IPv4 and IPv6, the origin must be publicly accessible via IPv4, or be reachable over Private Link integration. 
+Azure Front Door does not support IPv6 origins (i.e. backends) at the time of this writing in October 2025. While Front Door itself is dual-stack and accepts client traffic over IPv4 and IPv6, the origin must be publicly accessible via IPv4, or be reachable over Private Link integration. Front Door preserves the client's source IP address in the X-Forwarded-For, 
+
+
 
 #### Private Link Integration
 
@@ -312,20 +314,18 @@ Private Link transforms Azure Front Door from a global entry point into a fully 
 
 #### Configuration Steps for Azure Front Door
 
-1. **Create a Front Door profile:** In the Azure Portal, create a new **Front Door Standard or Premium tier** profile. Standard provides connectivity and routing functionality,Premium adds security features such as WAF and Private Link origin integration. 
+1. **Create a Front Door profile:** Create a new **Front Door Standard or Premium tier** profile. Standard provides connectivity and routing functionality,Premium adds security features such as WAF and Private Link origin integration. 
 
 2. **Add Backend Pools:** Configure one or more backend pools in Front Door. Backends can be anything: Azure Web Apps, Application Gateways, VMs with Public IPs, etc.  Front Door will forward to the backend's IPv4 address. If your backend *does* have an IPv6 address (like a dual-stack App Gateway or VM with IPv6), you could specify it, but that's optional. Assign a name and configure health probe and load balancing settings for the pool.
 
 3. **Configure Routes:** Set up a routing rule mapping the Front Door frontend to the backend pool. For example, route `/*` (all paths) on your Front Door domain to Backend Pool A. Enable protocols (Front Door supports HTTP/2 and web sockets with IPv6 too). If you have multiple regions, you might have multiple backend endpoints in the pool; Front Door will balance between them (you can do priority-based or weighted to prefer one region and fail to another).
 
-4. **Front Door Frontend Host and Custom Domain:** Once deployed, test using the default front door hostname (e.g., `ipv6webapp.azurefd.net`). It should be reachable via IPv6. Then optionally map a custom domain: create a CNAME from `ipv6webapp.contoso.com` to `ipv6webapp.azurefd.net`. Azure Front Door will automatically serve traffic for that custom domain once you validate it.
+4. **Front Door Frontend Host and Custom Domain:** Once deployed, test using the default front door hostname (e.g. `ipv6webapp-d4f4euhnb8fge4ce.b01.azurefd.net`). It should be reachable via IPv6. Then optionally map a custom domain: create a CNAME from `ipv6webapp.contoso.com` to `ipv6webapp-d4f4euhnb8fge4ce.b01.azurefd.net`. Azure Front Door will automatically serve traffic for that custom domain once you validate it.
 
-5. **Web Application Firewall (optional):** If [Web Application Firewall ](https://learn.microsoft.com/en-us/azure/frontdoor/web-application-firewall) is enabled, configure a policy. The Azure-managed Default Rule Set is enabled by default and provides protection against common threats. Add optional custom rules as needed. Azure Front Door provides built-in protection against network-layer DDoS attacks.
+5. **Web Application Firewall (optional):** If [Web Application Firewall](https://learn.microsoft.com/en-us/azure/frontdoor/web-application-firewall) is enabled, configure a policy. The Azure-managed Default Rule Set is enabled by default and provides protection against common threats. Add optional custom rules as needed. Azure Front Door provides built-in protection against network-layer DDoS attacks.
 
 **Note:** Front Door provides managed IPv6 addresses that are not customer-owned resources. Custom domains should use CNAME records pointing to the Front Door hostname rather than direct IP address references.
-
 ---
-
 ## Conclusion
 
 IPv6 adoption for web applications is no longer optional. It is essential as public IPv4 address space is depleted, mobile networks increasingly use IPv6 only and governments mandate IPv6 reachability for public services. Azure's comprehensive dual-stack networking capabilities provide a clear path forward, enabling organizations to leverage IPv6 externally without sacrificing IPv4 compatibility or requiring complete infrastructure overhauls.
@@ -337,3 +337,49 @@ For single-region deployments, Application Gateway offers layer-7 features like 
 Azure Front Door provides global IPv6 delivery with edge optimization, built-in security, and seamless failover across Microsoft's network. Private Link integration allows secure global IPv6 distribution while maintaining backend isolation.
 
 The transition to IPv6 application delivery on Azure is straightforward: enable dual-stack addressing on virtual networks, configure IPv6 frontends on load balancing services, and update DNS records. With Application Gateway or Front Door, backend applications require no modifications. These Azure services handle the IPv4-to-IPv6 translation seamlessly. This approach ensures both immediate IPv6 accessibility and long-term architectural flexibility as IPv6 adoption accelerates globally.
+
+---
+## Lab
+This lab deploys the environment shown in the diagrams above. This was used to validate the concepts described and generate the screenshots. The lab includes teh hub and spoke VNETs in US East 2 and Sweden Central, Application Gateways, External Load Balancers and VMs in both regions, Global Load Balancer and Traffic Manager. It does not include Azure Front Door.
+
+The VMs run the [Azure Region and Client IP Viewer](https://github.com/mddazure/azure-region-viewer) application. This displays the region the VM is deployed in and the calling client's IP address on a web page, when called at the root endpoint (/). The /api/region endpoint provides debugging information in json format.
+If an X-Forwarded-For header containing the orginal client IP address is present, the application will display this.If not, it will display the source IP address of the request.
+
+
+### Deploy
+Log in to Azure Cloud Shell at https://shell.azure.com/ and select Bash.
+
+Ensure Azure CLI and extensions are up to date:
+  
+    az upgrade --yes
+  
+If necessary select your target subscription:
+  
+    az account set --subscription <Name or ID of subscription>
+  
+Clone the  GitHub repository:
+
+    git clone https://github.com/mddazure/ipv6-web-app
+
+Change directory:
+  
+      cd ./ipv6-web-app
+
+Deploy the Bicep template:
+
+      az deployment sub create --location swedencentral --template-file templates/main-region-viewer.bicep
+
+Verify that all components have been deployed to the resourcegroup `ipv6-web-app-rg` and are healthy.
+
+### Observe
+The lab exposes the following public endpoints:
+
+| Type | Region | URL |
+|------|--------|-----|
+| External Load Balancer | Sweden Central | ipv6webapp-elb-swedencentral.swedencentral.cloudapp.azure.com |
+| External Load Balancer | East US 2 | ipv6webapp-elb-eastus2.eastus2.cloudapp.azure.com |
+| Application Gateway | Sweden Central | ipv6webapp-appgw-swedencentral.swedencentral.cloudapp.azure.com |
+| Application Gateway | East US 2 | ipv6webapp-appgw-eastus2.eastus2.cloudapp.azure.com |
+| Global Load Balancer | Global | ipv6webapp-glb.eastus2.cloudapp.azure.com |
+
+Call each URL from a web browser from machines in different regions and observe the outcomes.
