@@ -15,6 +15,8 @@ param dnsNameLabel string
 @allowed(['Basic', 'Standard'])
 param skuName string = 'Standard'
 
+param tier string = 'Regional'
+
 @description('The allocation method for the public IP address')
 @allowed(['Static', 'Dynamic'])
 param allocationMethod string = 'Static'
@@ -27,7 +29,7 @@ resource publicIPAddress 'Microsoft.Network/publicIPAddresses@2023-11-01' = {
   location: location
   sku: {
     name: skuName
-    tier: 'Regional'
+    tier: tier
   }
   zones: zoneRedundant ? ['1', '2', '3'] : null
   properties: {

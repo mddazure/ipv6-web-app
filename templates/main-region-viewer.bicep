@@ -1081,11 +1081,12 @@ module glbPublicIPv4 'modules/pubipaddress.bicep' = {
   scope: rg
   params: {
     name: 'glbPublicIPv4'
-    location: location1
+    location: location2
     skuName: 'Standard'
+    tier: 'Global'
     allocationMethod: 'Static'
     version: 'IPv4'
-    dnsNameLabel: 'globalipv4webapp-${uniqueString(rg.name)}'
+    dnsNameLabel: 'globalipv4webapp'
   }
 }
 module glbPublicIPv6 'modules/pubipaddress.bicep' = {
@@ -1093,11 +1094,12 @@ module glbPublicIPv6 'modules/pubipaddress.bicep' = {
   scope: rg
   params: {
     name: 'glbPublicIPv6'
-    location: location1
+    location: location2
     skuName: 'Standard'
+    tier: 'Global'
     allocationMethod: 'Static'
     version: 'IPv6'
-    dnsNameLabel: 'globalipv6webapp-${uniqueString(rg.name)}'
+    dnsNameLabel: 'globalipv6webapp'
   }
 }
 // --- Global Load Balancer ---

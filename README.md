@@ -56,7 +56,7 @@ Key benefits of adopting IPv6 in Azure include:
 **General Steps to Enable IPv6 Connectivity** for a web application in Azure are:
 1. **Plan and Enable IPv6 Addressing in Azure**: Define an IPv6 address space in your Azure Virtual Network. Azure allows adding IPv6 address space to existing VNETs, making them dual-stack. A `/56` segment for the VNet is recommended, `/64` for subnets is required (Azure *requires* `/64` subnets). If you have existing infrastructure, you might need to create new subnets or migrate resources, especially since older [Application Gateway v1 instances cannot simply be “upgraded” to dual-stack](https://learn.microsoft.com/en-us/azure/application-gateway/application-gateway-faq#does-application-gateway-support-ipv6).
 2. **Deploy or Update Frontend Services with IPv6**: Choose a suitable Azure service (Application Gateway, External / Global Load Balancer, etc.) and configure it with a public IPv6 address on the frontend. This usually means selecting *Dual Stack* configuration so the service gets both an IPv4 and IPv6 public IP. For instance, when creating an Application Gateway v2, you would specify [IP address type: DualStack (IPv4 & IPv6)](https://learn.microsoft.com/en-us/azure/application-gateway/ipv6-application-gateway-portal). Azure Front Door [by default](https://learn.microsoft.com/en-us/azure/frontdoor/front-door-overview) provides dual-stack capabilities with its global endpoints.
-5. **Configure Backends and Routing**: Usually your backend servers or services will remain on IPv4. At the time of writing this in October 2025, neither Azure Application Gateway nor Azure Front Door not support IPv6 for backend pool addresses. This is fine because the frontend terminates the IPv6 network connection from the client, and the backend initiates an IPv4 connection to the backend pool or origin. Ensure that your load balancing rules, listener configurations, and health probes are all set up to route traffic to these backends. Both IPv4 and IPv6 frontend listeners can share the same backend pool.
+5. **Configure Backends and Routing**: Usually your backend servers or services will remain on IPv4. At the time of writing this in October 2025, Azure Application Gateway does not support IPv6 for backend pool addresses. This is fine because the frontend terminates the IPv6 network connection from the client, and the backend initiates an IPv4 connection to the backend pool or origin. Ensure that your load balancing rules, listener configurations, and health probes are all set up to route traffic to these backends. Both IPv4 and IPv6 frontend listeners can share the same backend pool. Azure Front Door does support IPv6 origins.
 6. **Update DNS Records**: Publish a DNS **AAAA record** for your application’s host name, pointing to the new IPv6 address. This step is critical so that IPv6-only clients can discover the IPv6 address of your service. If your service also has an IPv4 address (dual stack), you will have both [A (IPv4) and AAAA (IPv6) records](https://learn.microsoft.com/en-us/azure/dns/dns-zones-records#record-types) for the same host name. DNS will thus allow clients of either IP family to connect. (In multi-region scenarios using Traffic Manager or Front Door, DNS configuration might be handled through those services as discussed later.)
 7. **Test IPv6 Connectivity**: Once set up, test from an IPv6-enabled network or use online tools to ensure the site is reachable via IPv6. Azure’s services like Application Gateway and Front Door will handle the dual-stack routing, but it’s good to verify that content loads on an IPv6-only connection and that SSL certificates, etc., work over IPv6 as they do for IPv4.
 
@@ -281,14 +281,15 @@ IP6Address : 2603:1030:403:17::5b0
 [Azure Front Door](https://learn.microsoft.com/en-us/azure/frontdoor/front-door-overview) is an application delivery network with built-in CDN, SSL offload, WAF, and routing capabilities. It provides a single, unified frontend distributed across Microsoft’s edge network. Azure Front Door natively supports IPv6 connectivity. 
 
 For applications that have users worldwide, Front Door offers advantages:
-- **Global Anycast Endpoint:** Provides anycast IP addresses accessible from multiple edge locations with automatic AAAA DNS record support for IPv6 clients.
-- **Simplified DNS:** Custom domains can be mapped using CNAME records, with IPv6 support handled automatically.
+- **Global Anycast Endpoint:** Provides anycast IPv4 and IPv6 addresses, advertised out of all edge locations, with automatic A and AAAA DNS record support.
+- **IPv4 and IPv6 origin support**: Azure Front Door supports both IPv4 and IPv6 origins (i.e. backends), both within Azure and externally (i.e. accessible over the internet).
+- **Simplified DNS:** Custom domains can be mapped using CNAME records.
 - **Layer-7 Routing:** Supports path-based routing and automatic backend health detection.
 - **Edge Security:** Includes DDoS protection and optional WAF integration.
 
-Azure Front Door does not support IPv6 origins (i.e. backends) at the time of this writing in October 2025. While Front Door itself is dual-stack and accepts client traffic over IPv4 and IPv6, the origin must be publicly accessible via IPv4, or be reachable over Private Link integration. Front Door preserves the client's source IP address in the X-Forwarded-For, 
+Front Door enables "cross-IP version" scenario's: a client can connect to the Front Door front-end over IPv6, and then Front Door can connect to an IPv4 origin. Conversely, an IPv4-only client can retrieve content from an IPv6 backend via Front Door.  
 
-
+Front Door preserves the client's source IP address in the X-Forwarded-For header.
 
 #### Private Link Integration
 
