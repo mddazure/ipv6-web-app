@@ -326,6 +326,7 @@ Private Link transforms Azure Front Door from a global entry point into a fully 
 5. **Web Application Firewall (optional):** If [Web Application Firewall](https://learn.microsoft.com/en-us/azure/frontdoor/web-application-firewall) is enabled, configure a policy. The Azure-managed Default Rule Set is enabled by default and provides protection against common threats. Add optional custom rules as needed. Azure Front Door provides built-in protection against network-layer DDoS attacks.
 
 **Note:** Front Door provides managed IPv6 addresses that are not customer-owned resources. Custom domains should use CNAME records pointing to the Front Door hostname rather than direct IP address references.
+
 ---
 ## Conclusion
 
