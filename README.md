@@ -315,6 +315,42 @@ Integration with Hybrid Architectures: For scenarios involving AKS clusters, cus
 
 Private Link transforms Azure Front Door from a global entry point into a fully private delivery mechanism for your applications, aligning with modern security principles and enterprise compliance needs.
 
+**Example:** Our application is now placed behind Azure Front Door. The origin endpoints are the public IPv6 endpoints of the regional External Load Balancers (we are not using Private Link integration in this example). The global FQDN `ipv6webapp-d4f4euhnb8fge4ce.b01.azurefd.net` and clients will use this FQDN to access the application regardless of their geographical location. The FQDN resolves to Front Door's global anycast address, and the internet will route client requests to the nearest Microsoft edge from this address is advertised. Front Door will then transparently route the request to the nearest origin deployment in Azure. Although public endpoints are used in this example, that traffic will be route over the Microsoft network.
+
+From a client in Europe:
+
+![image](/images/client-view-afd-europe-public-endpoint.png)
+
+Calling the application's api endpoint on `ipv6webapp-d4f4euhnb8fge4ce.b01.azurefd.net/api/region` shows some more detail.
+
+`"remoteAddress": "2a01:111:2053:d801:0:afd:ad4:1b28"` is the address from which Front Door sources its request to the origin.
+
+```
+{
+  "region": "SwedenCentral",
+  "clientIp": "2001:1c04:3404:9500:fd9b:58f4:1fb2:db21",
+  "xForwardedFor": "2001:1c04:3404:9500:fd9b:58f4:1fb2:db21",
+  "remoteAddress": "2a01:111:2053:d801:0:afd:ad4:1b28",
+  "isPrivateIP": false,
+  "expressIp": "2001:1c04:3404:9500:fd9b:58f4:1fb2:db21",
+  "connectionInfo": {
+    "remoteAddress": "2a01:111:2053:d801:0:afd:ad4:1b28",
+    "remoteFamily": "IPv6",
+    "localAddress": "2001:db8:1:1::4",
+    "localPort": 80
+  },
+  "allHeaders": {
+    "x-forwarded-for": "2001:1c04:3404:9500:fd9b:58f4:1fb2:db21",
+    "x-azure-clientip": "2001:1c04:3404:9500:fd9b:58f4:1fb2:db21"
+  },
+  "deploymentAdvice": "Public IP detected successfully"
+}
+```
+From a client in the US:
+
+
+
+
 ---
 ## Conclusion
 
