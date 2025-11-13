@@ -87,7 +87,7 @@ Azure [External Load Balancer](https://learn.microsoft.com/en-us/azure/load-bala
 
 **Outcome:** In this single-region scenario, IPv6-only clients will resolve your application's hostname to an IPv6 address and connect to the External Load Balancer over IPv6. 
 
-**Example:** Consider a [web application](https://github.com/mddazure/azure-region-viewer) running on a VM (or a VM scale set) behind an External Load Balancer in Sweden Central. The VM runs a containerized application exposed on port 80, which displays the region the VM is deployed in and the calling client's IP address. The load balancer's front-end IPv6 address has a DNS name of `ipv6webapp-elb-swedencentral.swedencentral.cloudapp.azure.com`. When called from a client with an IPv6 address, the application shows its region and the client's address.
+**Example:** Consider a web application running on a VM (or a VM scale set) behind an External Load Balancer in Sweden Central. The VM runs the [Azure Region and Client IP Viewer](https://github.com/mddazure/azure-region-viewer) containerized application exposed on port 80, which displays the region the VM is deployed in and the calling client's IP address. The load balancer's front-end IPv6 address has a DNS name of `ipv6webapp-elb-swedencentral.swedencentral.cloudapp.azure.com`. When called from a client with an IPv6 address, the application shows its region and the client's address.
 
 ![image](/images/client-view-elb-single-region.png)
 
@@ -291,6 +291,8 @@ Front Door enables "cross-IP version" scenario's: a client can connect to the Fr
 
 Front Door preserves the client's source IP address in the X-Forwarded-For header.
 
+**Note:** Front Door provides managed IPv6 addresses that are not customer-owned resources. Custom domains should use CNAME records pointing to the Front Door hostname rather than direct IP address references.
+
 #### Private Link Integration
 
 Azure Front Door Premium introduces **Private Link integration**, enabling secure, private connectivity between Front Door and your backend resources without exposing them to the public internet. 
@@ -312,20 +314,6 @@ The private endpoint connection requires approval from the origin resource owner
 Integration with Hybrid Architectures: For scenarios involving AKS clusters, custom APIs, or workloads behind internal load balancers, Private Link enables secure connectivity without requiring public IPs or complex VPN setups.
 
 Private Link transforms Azure Front Door from a global entry point into a fully private delivery mechanism for your applications, aligning with modern security principles and enterprise compliance needs.
-
-#### Configuration Steps for Azure Front Door
-
-1. **Create a Front Door profile:** Create a new **Front Door Standard or Premium tier** profile. Standard provides connectivity and routing functionality,Premium adds security features such as WAF and Private Link origin integration. 
-
-2. **Add Backend Pools:** Configure one or more backend pools in Front Door. Backends can be anything: Azure Web Apps, Application Gateways, VMs with Public IPs, etc.  Front Door will forward to the backend's IPv4 address. If your backend *does* have an IPv6 address (like a dual-stack App Gateway or VM with IPv6), you could specify it, but that's optional. Assign a name and configure health probe and load balancing settings for the pool.
-
-3. **Configure Routes:** Set up a routing rule mapping the Front Door frontend to the backend pool. For example, route `/*` (all paths) on your Front Door domain to Backend Pool A. Enable protocols (Front Door supports HTTP/2 and web sockets with IPv6 too). If you have multiple regions, you might have multiple backend endpoints in the pool; Front Door will balance between them (you can do priority-based or weighted to prefer one region and fail to another).
-
-4. **Front Door Frontend Host and Custom Domain:** Once deployed, test using the default front door hostname (e.g. `ipv6webapp-d4f4euhnb8fge4ce.b01.azurefd.net`). It should be reachable via IPv6. Then optionally map a custom domain: create a CNAME from `ipv6webapp.contoso.com` to `ipv6webapp-d4f4euhnb8fge4ce.b01.azurefd.net`. Azure Front Door will automatically serve traffic for that custom domain once you validate it.
-
-5. **Web Application Firewall (optional):** If [Web Application Firewall](https://learn.microsoft.com/en-us/azure/frontdoor/web-application-firewall) is enabled, configure a policy. The Azure-managed Default Rule Set is enabled by default and provides protection against common threats. Add optional custom rules as needed. Azure Front Door provides built-in protection against network-layer DDoS attacks.
-
-**Note:** Front Door provides managed IPv6 addresses that are not customer-owned resources. Custom domains should use CNAME records pointing to the Front Door hostname rather than direct IP address references.
 
 ---
 ## Conclusion
