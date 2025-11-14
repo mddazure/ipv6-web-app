@@ -4,9 +4,7 @@
 
 The IPv4 address space pool has been exhausted for some time now, meaning there is no new public address space available for allocation from Internet Registries. The internet continues to run on IPv4 through technical measures such as Network Address Translation (NAT) and [Carrier Grade NAT](https://en.wikipedia.org/wiki/Carrier-grade_NAT), and reallocation of address space through [IPv4 address space trading](https://iptrading.com/). 
 
-[IPv6](https://en.wikipedia.org/wiki/IPv6) will ultimately be the dominant network protocol on the internet, as IPv4 life-support mechanisms used by network operators, hosting providers and ISPs will eventually reach the limits of their scalability.
-
-Mobile networks are changing to IPv6-only APNs already. Reachability of IPv4-only destinations from these mobile networks is through 6-4 NAT gateways, which may cause problems.
+[IPv6](https://en.wikipedia.org/wiki/IPv6) will ultimately be the dominant network protocol on the internet, as IPv4 life-support mechanisms used by network operators, hosting providers and ISPs will eventually reach the limits of their scalability. Mobile networks are already changing to IPv6-only APNs; reachability of IPv4-only destinations from these mobile network is through 6-4 NAT gateways, which sometimes causes problems.
 
 Client uptake of IPv6 is progressing steadily. [Google](https://www.google.com/intl/en/ipv6/statistics.html#tab=ipv6-adoption) reports 49% of clients connecting to its services over IPv6 globally, with France leading at 80%. 
 
